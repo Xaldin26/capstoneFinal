@@ -14,13 +14,10 @@ import MainLog from "./src/views/screens/MainLog";
 import UnlockScreen from "./src/views/screens/UnlockScreen";
 import MailScreen from "./src/views/screens/MailScreen";
 import AddSchedule from "./src/views/screens/AddSchedule";
-import ProfileScreen from "./src/views/screens/ProfileScreen";
 import LoginScreenInstructor from "./src/views/screens/LoginScreenInstructor";
 import HomeScreenStudent from "./src/views/screensStudent/HomeScreenStudent";
 import QrScanner from "./src/views/screensStudent/qrscanner";
 import MailScreenStudent from "./src/views/screensStudent/MailScreenStudent";
-import Biometrics from "./src/views/screensStudent/Biometrics";
-import VerifyBiometrics from "./src/views/screensStudent/VerifyBiometrics";
 import UnlinkSubjectScreen from "./src/views/screens/UnlinkSubjectScreen";
 
 
@@ -190,6 +187,17 @@ function DrawerNavigator() {
           ),
         }} 
       />
+
+      <Drawer.Screen 
+        name="Link Subject" 
+        component={AddSchedule} 
+        options={{ 
+          title: 'Link Subject',
+          drawerIcon: ({ color, size }) => (
+            <Icon name="calendar-plus-o" color={color} size={size} />
+          ),
+        }}
+      />
       
       <Drawer.Screen 
         name="MailScreen" 
@@ -201,26 +209,8 @@ function DrawerNavigator() {
           ),
         }}
       />
-      <Drawer.Screen 
-        name="Link Subject" 
-        component={AddSchedule} 
-        options={{ 
-          title: 'Link Subject',
-          drawerIcon: ({ color, size }) => (
-            <Icon name="calendar-plus-o" color={color} size={size} />
-          ),
-        }}
-      />
-      <Drawer.Screen 
-        name="ProfileScreen" 
-        component={ProfileScreen} 
-        options={{ 
-          title: 'Profile',
-          drawerIcon: ({ color, size }) => (
-            <Icon name="user" color={color} size={size} />
-          ),
-        }}
-      />
+  
+      
     </Drawer.Navigator>
   );
 }
@@ -238,16 +228,7 @@ function DrawerNavigatorStudent() {
           ),
         }} 
       />
-      <Drawer.Screen 
-        name="Qrscanner" 
-        component={QrScanner} 
-        options={{ 
-          title: 'Scanner',
-          drawerIcon: ({ color, size }) => (
-            <Icon name="unlock-alt" color={color} size={size} />
-          ),
-        }}
-      />
+  
       <Drawer.Screen 
         name="MailScreen" 
         component={MailScreen} 
@@ -258,28 +239,7 @@ function DrawerNavigatorStudent() {
           ),
         }}
       />
-    
-      <Drawer.Screen 
-        name="ProfileScreen" 
-        component={ProfileScreen} 
-        options={{ 
-          title: 'Profile',
-          drawerIcon: ({ color, size }) => (
-            <Icon name="user" color={color} size={size} />
-          ),
-        }}
-      />
 
-<Drawer.Screen 
-        name="Biometrics" 
-        component={Biometrics} 
-        options={{ 
-          title: 'Profile',
-          drawerIcon: ({ color, size }) => (
-            <Icon name="user" color={color} size={size} />
-          ),
-        }}
-      />
     </Drawer.Navigator>
   );
 }
@@ -319,24 +279,8 @@ function App() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
-            name="ProfileScreen"
-            component={ProfileScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
             name="LoginScreenInstructor"
             component={LoginScreenInstructor}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Biometrics"
-            component={Biometrics}
-            options={{ headerShown: false }}
-          />
-
-          <Stack.Screen
-            name="VerifyBiometrics"
-            component={VerifyBiometrics}
             options={{ headerShown: false }}
           />
           <Stack.Screen
