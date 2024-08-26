@@ -20,12 +20,12 @@ import QrScanner from "./src/views/screensStudent/qrscanner";
 import MailScreenStudent from "./src/views/screensStudent/MailScreenStudent";
 import UnlinkSubjectScreen from "./src/views/screens/UnlinkSubjectScreen";
 
-
-
+// Define Navigators
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
 
+// Instructor's Tab Navigator
 function InstructorTabNavigator() {
   return (
     <Tab.Navigator
@@ -127,6 +127,7 @@ function StudentTabNavigator() {
   );
 }
 
+// Custom Drawer Content
 function CustomDrawerContent(props) {
   const [userName, setUserName] = React.useState('User');
   const [userEmail, setUserEmail] = React.useState('');
@@ -174,6 +175,7 @@ function CustomDrawerContent(props) {
   );
 }
 
+// Instructor Drawer Navigator
 function DrawerNavigator() {
   return (
     <Drawer.Navigator drawerContent={props => <CustomDrawerContent {...props} />}>
@@ -187,7 +189,6 @@ function DrawerNavigator() {
           ),
         }} 
       />
-
       <Drawer.Screen 
         name="Link Subject" 
         component={AddSchedule} 
@@ -198,7 +199,6 @@ function DrawerNavigator() {
           ),
         }}
       />
-      
       <Drawer.Screen 
         name="MailScreen" 
         component={MailScreen} 
@@ -209,12 +209,11 @@ function DrawerNavigator() {
           ),
         }}
       />
-  
-      
     </Drawer.Navigator>
   );
 }
 
+// Student Drawer Navigator
 function DrawerNavigatorStudent() {
   return (
     <Drawer.Navigator drawerContent={props => <CustomDrawerContent {...props} />}>
@@ -228,10 +227,9 @@ function DrawerNavigatorStudent() {
           ),
         }} 
       />
-  
       <Drawer.Screen 
-        name="MailScreen" 
-        component={MailScreen} 
+        name="MailScreenStudent" 
+        component={MailScreenStudent} 
         options={{ 
           title: 'Mail',
           drawerIcon: ({ color, size }) => (
@@ -239,74 +237,74 @@ function DrawerNavigatorStudent() {
           ),
         }}
       />
-
     </Drawer.Navigator>
   );
 }
 
+// Main App Component
 function App() {
   return (
-    
-      <NavigationContainer>
-        <Stack.Navigator initialRouteName="MainLog" screenOptions={{ headerShown: false }}>
-          <Stack.Screen
-            name="DrawerNavigator"
-            component={DrawerNavigator}
-          />
-          <Stack.Screen
-            name="DrawerNavigatorStudent"
-            component={DrawerNavigatorStudent}
-          />
-          
-          <Stack.Screen
-            name="MainLog"
-            component={MainLog}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="LoginScreen"
-            component={LoginScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="RegistrationScreen"
-            component={RegistrationScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="AddSchedule"
-            component={AddSchedule}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="LoginScreenInstructor"
-            component={LoginScreenInstructor}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="UnlinkSubjectScreen"
-            component={UnlinkSubjectScreen}
-            options={{ headerShown: false }}
-          />
-          
-          
-        </Stack.Navigator>
-      </NavigationContainer>
-    
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="MainLog" screenOptions={{ headerShown: false }}>
+        <Stack.Screen
+          name="DrawerNavigator"
+          component={DrawerNavigator}
+        />
+        <Stack.Screen
+          name="DrawerNavigatorStudent"
+          component={DrawerNavigatorStudent}
+        />
+        <Stack.Screen
+          name="MainLog"
+          component={MainLog}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="LoginScreen"
+          component={LoginScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="RegistrationScreen"
+          component={RegistrationScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="AddSchedule"
+          component={AddSchedule}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="LoginScreenInstructor"
+          component={LoginScreenInstructor}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="UnlinkSubjectScreen"
+          component={UnlinkSubjectScreen}
+          options={{ headerShown: false }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
 const styles = StyleSheet.create({
   tabBarStyle: {
-    position: 'absolute',
-    elevation: 0,
     backgroundColor: '#ffffff',
-    borderRadius: 15,
-    height: 60,
+    borderTopColor: '#dddddd',
+    borderTopWidth: 1,
   },
   iconContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
+  },
+  iconText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  iconTextFocused: {
+    fontSize: 12,
+    color: '#000',
   },
   circleButton: {
     width: 70,
@@ -315,42 +313,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#0000ff',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 50,
-  },
-  iconText: {
-    color: '#666',
-  },
-  iconTextFocused: {
-    color: '#000',
-  },
-  circleIconText: {
-    color: '#ffffff',
+    marginBottom: 40,
   },
   drawerHeader: {
     padding: 20,
-    backgroundColor: '#f8f9fa',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    backgroundColor: '#f2f2f2',
   },
   drawerHeaderText: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 10,
+    marginVertical: 10,
   },
   drawerEmailText: {
     fontSize: 14,
-    color: '#555',
-    marginTop: 5,
+    color: '#666',
   },
   editButton: {
-    marginTop: 10,
-    padding: 10,
     backgroundColor: '#007bff',
     borderRadius: 5,
+    padding: 10,
+    marginVertical: 10,
   },
   editButtonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontWeight: 'bold',
   },
 });
