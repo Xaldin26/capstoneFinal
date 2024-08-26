@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,12 +14,29 @@ import Input from "../components/Input";
 import Button from "../components/Button";
 import Loader from "../components/Loader";
 import ccsLogo from "../../img/lck.png";
+import { CommonActions } from "@react-navigation/native";
 
 const LoginScreen = ({ navigation }) => {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const userData = await AsyncStorage.getItem("user");
+      if (userData) {
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: "DrawerNavigatorStudent" }],
+          })
+        );
+      }
+    };
+
+    checkLoginStatus();
+  }, [navigation]);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -37,7 +54,12 @@ const LoginScreen = ({ navigation }) => {
         await AsyncStorage.setItem("user", JSON.stringify(userData));
 
         // Pass the user ID to the DrawerNavigatorStudent and navigate
-        navigation.navigate("DrawerNavigatorStudent", { userId });
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: "DrawerNavigatorStudent", params: { userId } }],
+          })
+        );
       }
     } catch (error) {
       if (error.response && error.response.status === 422) {

@@ -16,6 +16,7 @@ import {
 import CustomPinInput from "../components/CustomPinInput"; // Import the new component
 import Loader from "../components/Loader";
 import axios from "axios"; // For sending API requests
+import { CommonActions } from '@react-navigation/native'; // Import CommonActions for navigation
 
 import ccsLogo from "../../img/lck.png"; // Import the image
 
@@ -66,10 +67,13 @@ const LoginScreenInstructor = ({ navigation }) => {
         // Save user data to AsyncStorage
         await AsyncStorage.setItem("userData", JSON.stringify(response.data.user));
 
-        // Navigate to the HomeScreen within DrawerNavigator
-        navigation.navigate('DrawerNavigator', {
-          screen: 'HomeScreen',
-        });
+        // Navigate to the HomeScreen within DrawerNavigator and reset the stack
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'DrawerNavigator', params: { screen: 'HomeScreen' } }],
+          })
+        );
       } else {
         Dialog.show({
           type: ALERT_TYPE.DANGER,
@@ -117,7 +121,6 @@ const LoginScreenInstructor = ({ navigation }) => {
               }}
               error={error}
             />
-            {/* Remove the button if you want auto-login */}
           </View>
         </ScrollView>
       </SafeAreaView>
