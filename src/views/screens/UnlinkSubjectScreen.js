@@ -2,15 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Alert, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
 
-const AddSchedule = () => {
+const UnlinkSubjectScreen = () => {
   const [subjects, setSubjects] = useState([]);
   const [linkedSubjects, setLinkedSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState(null);
-  const navigation = useNavigation();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -18,7 +16,7 @@ const AddSchedule = () => {
         const userDataString = await AsyncStorage.getItem('userData');
         const userData = userDataString ? JSON.parse(userDataString) : null;
         if (userData && userData.id) {
-          setUserId(userData.id); // Store user_id for POST
+          setUserId(userData.id); // Store user_id for filtering linked subjects
         }
       } catch (error) {
         console.error('Failed to fetch user data:', error);
@@ -26,11 +24,16 @@ const AddSchedule = () => {
     };
 
     fetchUserData();
-
-    fetchSubjectsAndLinkedSubjects();
   }, []);
 
+  useEffect(() => {
+    if (userId !== null) {
+      fetchSubjectsAndLinkedSubjects();
+    }
+  }, [userId]);
+
   const fetchSubjectsAndLinkedSubjects = async () => {
+    setLoading(true);
     try {
       const [subjectsResponse, linkedSubjectsResponse] = await Promise.all([
         axios.get('https://lockup.pro/api/subs'),
@@ -45,16 +48,18 @@ const AddSchedule = () => {
       }
 
       if (linkedSubjectsResponse.data && Array.isArray(linkedSubjectsResponse.data.data)) {
-        setLinkedSubjects(linkedSubjectsResponse.data.data.map(item => item.subject_id));
+        const filteredLinkedSubjects = linkedSubjectsResponse.data.data
+          .filter(item => item.user_id === userId)
+          .map(item => item.subject_id);
+        setLinkedSubjects(filteredLinkedSubjects);
       } else {
         console.error('Unexpected data format for linked subjects:', linkedSubjectsResponse.data);
         Alert.alert('Error', 'Failed to load linked subjects.');
       }
-
-      setLoading(false);
     } catch (error) {
       console.error('Error fetching data:', error);
       Alert.alert('Error', 'Failed to load subjects and linked subjects.');
+    } finally {
       setLoading(false);
     }
   };
@@ -65,44 +70,6 @@ const AddSchedule = () => {
     date.setHours(hour);
     date.setMinutes(minute);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-  };
-
-  const handleAddSchedule = async () => {
-    if (!selectedSubject) {
-      Alert.alert('Validation Error', 'Please select a subject.');
-      return;
-    }
-
-    try {
-      const scheduleData = {
-        user_id: userId,
-        subject_id: selectedSubject.id,
-      };
-
-      console.log('Submitting schedule data:', scheduleData);
-
-      const response = await axios.post('https://lockup.pro/api/linkedSubjects', scheduleData);
-
-      if (response.data) {
-        console.log('Schedule added successfully:', response.data);
-        Alert.alert('Success', 'Schedule added successfully!');
-
-        fetchSubjectsAndLinkedSubjects();
-      } else {
-        console.log('Unexpected response data:', response.data);
-        Alert.alert('Error', 'Failed to add schedule.');
-      }
-    } catch (error) {
-      console.error('Failed to add schedule:', error);
-      console.error('Error response data:', error.response?.data);
-      console.error('Error response status:', error.response?.status);
-      console.error('Error response headers:', error.response?.headers);
-      Alert.alert('Error', 'Failed to add schedule.');
-    }
-  };
-
-  const handleUnlinkSubject = () => {
-    navigation.navigate('UnlinkSubjectScreen');
   };
 
   const renderSubjectRow = (subject) => (
@@ -122,7 +89,41 @@ const AddSchedule = () => {
     </TouchableOpacity>
   );
 
-  const filteredSubjects = subjects.filter(subject => !linkedSubjects.includes(subject.id));
+  const filteredSubjects = subjects.filter(subject => linkedSubjects.includes(subject.id));
+
+  const unlinkSubject = async () => {
+    if (!selectedSubject) {
+      Alert.alert('Error', 'Please select a subject to unlink.');
+      return;
+    }
+
+    try {
+      const response = await axios.delete('https://lockup.pro/api/linkedSubjects', {
+        data: {
+          user_id: userId,
+          subject_id: selectedSubject.id,
+        },
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.status === 200) {
+        Alert.alert('Success', 'Subject unlinked successfully.');
+
+        // Update the state by removing the unlinked subject
+        setLinkedSubjects((prevLinkedSubjects) =>
+          prevLinkedSubjects.filter((subjectId) => subjectId !== selectedSubject.id)
+        );
+        setSelectedSubject(null); // Reset the selected subject
+      } else {
+        Alert.alert('Error', 'Failed to unlink the subject.');
+      }
+    } catch (error) {
+      console.error('Error unlinking subject:', error);
+      Alert.alert('Error', 'Failed to unlink the subject.');
+    }
+  };
 
   if (loading) {
     return <ActivityIndicator size="large" color="#007BFF" style={styles.loader} />;
@@ -130,7 +131,7 @@ const AddSchedule = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Select a Subject</Text>
+      <Text style={styles.label}>Unlink a Subject</Text>
       <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
         <View style={styles.tableContainer}>
           <ScrollView horizontal>
@@ -159,11 +160,7 @@ const AddSchedule = () => {
         </View>
       )}
 
-      <TouchableOpacity style={styles.button} onPress={handleAddSchedule} disabled={!selectedSubject}>
-        <Text style={styles.buttonText}>Link Subject</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity style={styles.unlinkButton} onPress={handleUnlinkSubject}>
+      <TouchableOpacity style={styles.unlinkButton} onPress={unlinkSubject}>
         <Text style={styles.unlinkButtonText}>Unlink Subject</Text>
       </TouchableOpacity>
     </View>
@@ -174,13 +171,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#ffffff', // Example: background color similar to UnlinkSubjectScreen
+    backgroundColor: '#f5f5f5',
   },
   label: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginVertical: -10,
-    marginBottom: 10
+    marginVertical: 10,
   },
   scrollContainer: {
     flex: 1,
@@ -193,100 +189,86 @@ const styles = StyleSheet.create({
   },
   table: {
     borderWidth: 1,
-    borderColor: '#dcdcdc', // Example: border color similar to UnlinkSubjectScreen
-    borderRadius: 8, // Example: adjusted border radius
+    borderColor: '#ccc',
+    borderRadius: 10,
     overflow: 'hidden',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#007BFF', // Example: background color similar to UnlinkSubjectScreen
-    paddingVertical: 10, // Adjusted padding
-    paddingHorizontal: 8, // Adjusted padding
+    backgroundColor: '#007BFF',
+    paddingVertical: 10,
+    paddingHorizontal: 5,
   },
   tableHeaderCell: {
-    padding: 12, // Adjusted padding
-    fontWeight: '600', // Adjusted font weight
-    color: '#ffffff', // Example: text color similar to UnlinkSubjectScreen
+    padding: 10,
+    fontWeight: 'bold',
+    color: '#fff',
     textAlign: 'center',
   },
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#dcdcdc', // Example: border color similar to UnlinkSubjectScreen
+    borderBottomColor: '#ccc',
   },
   tableCell: {
-    padding: 12, // Adjusted padding
+    padding: 10,
     textAlign: 'center',
   },
   subjectName: {
     flex: 2,
-    minWidth: 180, // Adjusted minWidth
+    minWidth: 200,
   },
   subjectCode: {
     flex: 1,
-    minWidth: 100, // Adjusted minWidth
+    minWidth: 80,
   },
   timeCell: {
     flex: 1,
-    minWidth: 100, // Adjusted minWidth
+    minWidth: 80,
   },
   sectionCell: {
     flex: 1,
-    minWidth: 100, // Adjusted minWidth
+    minWidth: 80,
   },
   selectedRow: {
-    backgroundColor: '#f0f0f0', // Example: background color similar to UnlinkSubjectScreen
+    backgroundColor: '#e0e0e0',
   },
   detailContainer: {
     marginTop: 20,
     padding: 20,
-    borderRadius: 8, // Adjusted border radius
-    backgroundColor: '#ffffff', // Example: background color similar to UnlinkSubjectScreen
-    shadowColor: '#000', // Adjusted shadow color
-    shadowOffset: { width: 0, height: 4 }, // Adjusted shadow offset
-    shadowOpacity: 0.2, // Adjusted shadow opacity
-    shadowRadius: 6, // Adjusted shadow radius
-    elevation: 3, // Adjusted elevation
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 2,
   },
   detailTitle: {
-    fontSize: 24, // Adjusted font size
-    fontWeight: '600', // Adjusted font weight
-    marginBottom: 12, // Adjusted margin
-    color: '#333', // Example: text color similar to UnlinkSubjectScreen
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
   detailText: {
     fontSize: 16,
-    marginVertical: 4, // Adjusted margin
-    color: '#555', // Example: text color similar to UnlinkSubjectScreen
+    marginBottom: 5,
   },
   readMore: {
-    fontSize: 16,
-    color: '#007BFF', // Example: link color similar to UnlinkSubjectScreen
-    marginTop: 12, // Adjusted margin
-  },
-  button: {
-    marginTop: 20,
-    paddingVertical: 14, // Adjusted padding
-    backgroundColor: '#007BFF', // Example: button color similar to UnlinkSubjectScreen
-    borderRadius: 8, // Adjusted border radius
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#ffffff', // Example: text color similar to UnlinkSubjectScreen
-    fontSize: 18,
-    fontWeight: '600', // Adjusted font weight
+    color: '#007BFF',
+    marginTop: 10,
   },
   unlinkButton: {
-    marginTop: 10,
-    paddingVertical: 14, // Adjusted padding
-    backgroundColor: '#FF4136', // Example: button color similar to UnlinkSubjectScreen
-    borderRadius: 8, // Adjusted border radius
+    marginTop: 20,
+    backgroundColor: '#FF3B30',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 5,
     alignItems: 'center',
   },
   unlinkButtonText: {
-    color: '#ffffff', // Example: text color similar to UnlinkSubjectScreen
-    fontSize: 18,
-    fontWeight: '600', // Adjusted font weight
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   loader: {
     flex: 1,
@@ -295,4 +277,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AddSchedule;
+export default UnlinkSubjectScreen;

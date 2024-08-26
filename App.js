@@ -21,6 +21,7 @@ import QrScanner from "./src/views/screensStudent/qrscanner";
 import MailScreenStudent from "./src/views/screensStudent/MailScreenStudent";
 import Biometrics from "./src/views/screensStudent/Biometrics";
 import VerifyBiometrics from "./src/views/screensStudent/VerifyBiometrics";
+import UnlinkSubjectScreen from "./src/views/screens/UnlinkSubjectScreen";
 
 
 
@@ -201,10 +202,10 @@ function DrawerNavigator() {
         }}
       />
       <Drawer.Screen 
-        name="AddSchedule" 
+        name="Link Subject" 
         component={AddSchedule} 
         options={{ 
-          title: 'Add Schedule',
+          title: 'Link Subject',
           drawerIcon: ({ color, size }) => (
             <Icon name="calendar-plus-o" color={color} size={size} />
           ),
@@ -333,9 +334,14 @@ function App() {
             options={{ headerShown: false }}
           />
 
-<Stack.Screen
+          <Stack.Screen
             name="VerifyBiometrics"
             component={VerifyBiometrics}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="UnlinkSubjectScreen"
+            component={UnlinkSubjectScreen}
             options={{ headerShown: false }}
           />
           
@@ -352,7 +358,7 @@ const styles = StyleSheet.create({
     elevation: 0,
     backgroundColor: '#ffffff',
     borderRadius: 15,
-    height: 65,
+    height: 60,
   },
   iconContainer: {
     alignItems: 'center',
