@@ -159,7 +159,7 @@ function CustomDrawerContent(props) {
       props.navigation.dispatch(
         CommonActions.reset({
           index: 0,
-          routes: [{ name: 'LoginScreen' }],
+          routes: [{ name: 'MainLog' }],
         })
       );
     } catch (error) {
