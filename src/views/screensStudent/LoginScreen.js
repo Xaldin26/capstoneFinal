@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -22,22 +22,7 @@ const LoginScreen = ({ navigation }) => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const checkLoginStatus = async () => {
-      const userData = await AsyncStorage.getItem("user");
-      if (userData) {
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: "DrawerNavigatorStudent" }],
-          })
-        );
-      }
-    };
-
-    checkLoginStatus();
-  }, [navigation]);
-
+  
   const handleLogin = async () => {
     setLoading(true);
     try {
@@ -53,7 +38,7 @@ const LoginScreen = ({ navigation }) => {
         // Store user data in AsyncStorage, including the ID
         await AsyncStorage.setItem("user", JSON.stringify(userData));
 
-        // Pass the user ID to the DrawerNavigatorStudent and navigate
+        // Reset navigation stack and navigate to DrawerNavigatorStudent
         navigation.dispatch(
           CommonActions.reset({
             index: 0,

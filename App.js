@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { CommonActions } from '@react-navigation/native';
 
 import HomeScreen from "./src/views/screens/HomeScreen";
 import RegistrationScreen from "./src/views/screens/RegistrationScreen";
@@ -19,6 +20,8 @@ import HomeScreenStudent from "./src/views/screensStudent/HomeScreenStudent";
 import QrScanner from "./src/views/screensStudent/qrscanner";
 import MailScreenStudent from "./src/views/screensStudent/MailScreenStudent";
 import UnlinkSubjectScreen from "./src/views/screens/UnlinkSubjectScreen";
+import QrScanWithUser from "./src/views/screensStudent/QrScanWithUser";
+import ScanningChoice from "./src/views/screensStudent/ScanningChoice";
 
 // Define Navigators
 const Stack = createNativeStackNavigator();
@@ -99,8 +102,8 @@ function StudentTabNavigator() {
         }}
       />
       <Tab.Screen 
-        name="Qrscanner" 
-        component={QrScanner} 
+        name="ScanningChoice" 
+        component={ScanningChoice} 
         options={{
           tabBarIcon: () => (
             <View style={styles.iconContainer}>
@@ -150,6 +153,20 @@ function CustomDrawerContent(props) {
     fetchUserData();
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('userData');
+      props.navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'LoginScreen' }],
+        })
+      );
+    } catch (error) {
+      console.error('Failed to clear user data:', error);
+    }
+  };
+
   return (
     <DrawerContentScrollView {...props}>
       <View style={styles.drawerHeader}>
@@ -169,7 +186,7 @@ function CustomDrawerContent(props) {
         icon={({ color, size }) => (
           <Icon name="sign-out" color={color} size={size} />
         )}
-        onPress={() => props.navigation.navigate('MainLog')}
+        onPress={handleLogout}
       />
     </DrawerContentScrollView>
   );
@@ -282,6 +299,21 @@ function App() {
         <Stack.Screen
           name="UnlinkSubjectScreen"
           component={UnlinkSubjectScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="QrScanWithUser"
+          component={QrScanWithUser}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ScanningChoice"
+          component={ScanningChoice}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="QrScanner"
+          component={QrScanner}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
