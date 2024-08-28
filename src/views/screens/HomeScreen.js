@@ -1,5 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  View, 
+  Text, 
+  ActivityIndicator, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ScrollView, 
+  Image, 
+  Animated, 
+  SafeAreaView 
+} from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -13,26 +23,48 @@ const HomeScreen = ({ navigation }) => {
   const [instructorSubjectMap, setInstructorSubjectMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     getUserData();
-
-    // Start the interval to refresh data every 2 seconds
+    fetchData();
     const intervalId = setInterval(fetchData, 1000);
 
-    // Clean up the interval on component unmount
-    return () => clearInterval(intervalId);
+    const timeIntervalId = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    return () => {
+      clearInterval(intervalId);
+      clearInterval(timeIntervalId);
+    };
   }, []);
 
   const getUserData = async () => {
     try {
-      const userData = await AsyncStorage.getItem("userData");
+      const userData = await AsyncStorage.getItem('userData');
       if (userData) {
-        const parsedData = JSON.parse(userData);
-        setUserDetails(parsedData);
+        setUserDetails(JSON.parse(userData));
       }
     } catch (error) {
-      console.error("Failed to load user data", error);
+      console.error('Failed to load user data', error);
     }
   };
 
@@ -43,7 +75,7 @@ const HomeScreen = ({ navigation }) => {
       setSubjects(fetchedSubjects);
 
       const subjectIdResponse = await axios.get('https://lockup.pro/api/linkedSubjects');
-      const subjectIds = subjectIdResponse.data.data ? subjectIdResponse.data.data.map(item => item.subject_id) : [];
+      const subjectIds = subjectIdResponse.data.data?.map(item => item.subject_id) || [];
 
       const instructorsResponse = await axios.get('https://lockup.pro/api/instructors');
       const fetchedInstructors = instructorsResponse.data.data || [];
@@ -59,15 +91,11 @@ const HomeScreen = ({ navigation }) => {
         const subject = fetchedSubjects.find(sub => sub.id === instructorSubject.subject_id);
         const instructor = fetchedInstructors.find(inst => inst.id === instructorSubject.user_id);
         if (subject && instructor) {
-          if (!subjectInstructorMap[subject.id]) {
-            subjectInstructorMap[subject.id] = {
-              ...subject,
-              instructorName: instructor.username,
-            };
-          }
-          if (!instructorSubjectMap[instructor.id]) {
-            instructorSubjectMap[instructor.id] = [];
-          }
+          subjectInstructorMap[subject.id] = subjectInstructorMap[subject.id] || {
+            ...subject,
+            instructorName: instructor.username,
+          };
+          instructorSubjectMap[instructor.id] = instructorSubjectMap[instructor.id] || [];
           instructorSubjectMap[instructor.id].push(subject);
         }
       });
@@ -83,6 +111,40 @@ const HomeScreen = ({ navigation }) => {
       setLoading(false);
     }
   };
+
+  const formatTime = (time) => {
+    const [hours, minutes] = time.split(':');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const formattedHours = hours % 12 || 12;
+    return `${formattedHours}:${minutes} ${ampm}`;
+  };
+
+  const getCurrentTimeFormatted = () => {
+    const hours = currentTime.getHours();
+    const minutes = currentTime.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const formattedHours = hours % 12 || 12;
+    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+    return `${formattedHours}:${formattedMinutes} ${ampm}`;
+  };
+
+  const getFormattedDate = () => {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return currentTime.toLocaleDateString('en-US', options);
+  };
+
+  const getCurrentDay = () => {
+    return currentTime.toLocaleDateString('en-US', { weekday: 'long' });
+  };
+
+
+  const isTimeWithinRange = (startTime, endTime, day) => {
+    const formattedCurrentTime = getCurrentTimeFormatted();
+    return formattedCurrentTime >= formatTime(startTime) && formattedCurrentTime <= formatTime(endTime) && day === getCurrentDay();
+  };
+
+  const matchingSubjects = subjects.filter(subject => isTimeWithinRange(subject.start_time, subject.end_time, subject.day));
+
 
   if (loading) {
     return <ActivityIndicator size="large" color="#6200ea" style={styles.loader} />;
@@ -110,35 +172,54 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.mainText}>Mac Laboratory</Text>
               <Text style={styles.subText}>COLLEGE OF COMPUTER STUDIES</Text>
             </View>
-            <View style={styles.boxContainer}>
-              <View style={styles.box}>
-                <Text style={styles.boxText}>Centered Box</Text>
-              </View>
-              <Text style={styles.scheduleText}>MACLAB SCHEDULE</Text>
-              {groupedSubjects.map(group => (
-                <View key={group.instructorName} style={styles.group}>
-                  <Text style={styles.instructorHeader}>{group.instructorName}</Text>
-                  {group.subjects.length > 0 ? (
-                    group.subjects.map(subject => (
-                      <View key={subject.id} style={styles.subjectContainer}>
-                        <Text style={styles.subjectTitle}>{subject.name}</Text>
-                        <Text style={styles.subjectCode}>Code: {subject.code}</Text>
-                        <Text style={styles.subjectTime}>Time: {formatTime(subject.start_time)} - {formatTime(subject.end_time)}</Text>
-                        <Text style={styles.subjectSection}>Section: {subject.section}</Text>
-                        <Text style={styles.subjectDescription}>
-                          {subject.description}
-                          <TouchableOpacity>
-                            <Text style={styles.readMore}> Read more →</Text>
-                          </TouchableOpacity>
-                        </Text>
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={styles.noDataText}>No subjects available</Text>
-                  )}
-                </View>
-              ))}
+            <View style={styles.box}>
+              {matchingSubjects.length > 0 ? (
+                matchingSubjects.map(subject => (
+                  <React.Fragment key={subject.id}>
+                    <Animated.Text style={[styles.occupiedText, { opacity }]}>OCCUPIED</Animated.Text>
+                    <Text style={styles.subjectTitle}>{subject.name}</Text>
+                    <Text style={styles.subjectCode}>Code: {subject.code}</Text>
+                    <Text style={styles.subjectDay}>Every: {subject.day}</Text>
+                    <Text style={styles.subjectTime}>Time: {formatTime(subject.start_time)} - {formatTime(subject.end_time)}</Text>
+                    <Text style={styles.subjectSection}>Section: {subject.section}</Text>
+                    <Text style={styles.subjectDescription}>
+                      {subject.description}
+                      <TouchableOpacity>
+                        <Text style={styles.readMore}> Read more →</Text>
+                      </TouchableOpacity>
+                    </Text>
+                    <Text style={styles.subjectOccupiedBy}>Occupied By: {subjectInstructorMap[subject.id]?.instructorName || 'Unknown Instructor'}</Text>
+                  </React.Fragment>
+                ))
+              ) : (
+                <Text style={styles.noDataText}>No subjects starting at the current time</Text>
+              )}
             </View>
+            <Text style={styles.scheduleText}>MACLAB SCHEDULE</Text>
+            {groupedSubjects.map(group => (
+              <View key={group.instructorName} style={styles.group}>
+                <Text style={styles.instructorHeader}>{group.instructorName}</Text>
+                {group.subjects.length > 0 ? (
+                  group.subjects.map(subject => (
+                    <View key={subject.id} style={styles.subjectContainer}>
+                      <Text style={styles.subjectTitle}>{subject.name}</Text>
+                      <Text style={styles.subjectCode}>Code: {subject.code}</Text>
+                      <Text style={styles.subjectDay}>Every: {subject.day}</Text>
+                      <Text style={styles.subjectTime}>Time: {formatTime(subject.start_time)} - {formatTime(subject.end_time)}</Text>
+                      <Text style={styles.subjectSection}>Section: {subject.section}</Text>
+                      <Text style={styles.subjectDescription}>
+                        {subject.description}
+                        <TouchableOpacity>
+                          <Text style={styles.readMore}> Read more →</Text>
+                        </TouchableOpacity>
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.noDataText}>No subjects available</Text>
+                )}
+              </View>
+            ))}
           </ScrollView>
         );
       case 'People':
@@ -148,15 +229,8 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  const formatTime = (time) => {
-    const [hours, minutes] = time.split(':');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const formattedHours = hours % 12 || 12;
-    return `${formattedHours}:${minutes} ${ampm}`;
-  };
-
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
         <Text style={styles.welcomeText}>Welcome, </Text>
         <Text style={styles.nameText}>{userDetails?.username || 'User'}</Text>
@@ -175,10 +249,12 @@ const HomeScreen = ({ navigation }) => {
           <Text style={[styles.navButtonText, selectedButton === 'People' && styles.selectedButtonText]}>People</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.contentContainer}>
-        {renderContent()}
-      </View>
-    </View>
+      {renderContent()}
+      <Animated.View style={[styles.timeContainer, { opacity }]}>
+        <Text style={styles.timeText}>{getCurrentTimeFormatted()}</Text>
+        <Text style={styles.dateText}>{getFormattedDate()}</Text>
+      </Animated.View>
+    </SafeAreaView>
   );
 };
 
@@ -246,7 +322,7 @@ const styles = StyleSheet.create({
   },
   textContainer: {
     paddingTop: 2,
-    paddingBottom: 15,
+    paddingBottom: 5,
     alignItems: 'center',
   },
   mainText: {
@@ -259,21 +335,17 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   boxContainer: {
-    marginTop: 20,
+    marginTop: 100,
     paddingHorizontal: 10,
   },
   box: {
     backgroundColor: '#e0e0e0',
     padding: 20,
-    borderRadius: 5,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  boxText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-  },
+ 
   scheduleText: {
     marginTop: 20,
     fontSize: 20,
@@ -306,6 +378,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  subjectDay: {
+    fontSize: 14,
+    color: '#666',
+  },
   subjectTime: {
     fontSize: 14,
     color: '#666',
@@ -324,7 +400,7 @@ const styles = StyleSheet.create({
   },
   noDataText: {
     fontSize: 14,
-    color: '#999',
+    color: '#333',
     textAlign: 'center',
     marginTop: 10,
   },
@@ -344,6 +420,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
+  occupiedText: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: '#4CAF50', // Green color
+    marginBottom: 1,
+    
+  },
+  timeContainer: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+  },
 });
 
 export default HomeScreen;
+
+

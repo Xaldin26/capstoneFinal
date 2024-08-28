@@ -83,6 +83,7 @@ const UnlinkSubjectScreen = () => {
     >
       <Text style={[styles.tableCell, styles.subjectName]}>{subject.name}</Text>
       <Text style={[styles.tableCell, styles.subjectCode]}>{subject.code}</Text>
+      <Text style={[styles.tableCell, styles.dayCell]}>{subject.day}</Text>
       <Text style={[styles.tableCell, styles.timeCell]}>{formatTime(subject.start_time)}</Text>
       <Text style={[styles.tableCell, styles.timeCell]}>{formatTime(subject.end_time)}</Text>
       <Text style={[styles.tableCell, styles.sectionCell]}>{subject.section}</Text>
@@ -139,6 +140,7 @@ const UnlinkSubjectScreen = () => {
               <View style={styles.tableHeader}>
                 <Text style={[styles.tableHeaderCell, styles.subjectName]}>Subject Name</Text>
                 <Text style={[styles.tableHeaderCell, styles.subjectCode]}>Code</Text>
+                <Text style={[styles.tableHeaderCell, styles.dayCell]}>Day</Text>
                 <Text style={[styles.tableHeaderCell, styles.timeCell]}>Start Time</Text>
                 <Text style={[styles.tableHeaderCell, styles.timeCell]}>End Time</Text>
                 <Text style={[styles.tableHeaderCell, styles.sectionCell]}>Section</Text>
@@ -153,6 +155,7 @@ const UnlinkSubjectScreen = () => {
         <View style={styles.detailContainer}>
           <Text style={styles.detailTitle}>{selectedSubject.name}</Text>
           <Text style={styles.detailText}>Code: {selectedSubject.code}</Text>
+          <Text style={styles.detailText}>Day: {selectedSubject.day}</Text>
           <Text style={styles.detailText}>Time: {formatTime(selectedSubject.start_time)} to {formatTime(selectedSubject.end_time)}</Text>
           <Text style={styles.detailText}>Section: {selectedSubject.section}</Text>
           <Text style={styles.detailText}>{selectedSubject.description}</Text>
@@ -222,6 +225,10 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 80,
   },
+  dayCell: {
+    flex: 1,
+    minWidth: 80,
+  },
   timeCell: {
     flex: 1,
     minWidth: 80,
@@ -241,28 +248,27 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowRadius: 4,
     elevation: 2,
   },
   detailTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
   },
   detailText: {
     fontSize: 16,
-    marginBottom: 5,
+    marginVertical: 5,
   },
   readMore: {
     color: '#007BFF',
     marginTop: 10,
+    fontWeight: 'bold',
   },
   unlinkButton: {
     marginTop: 20,
-    backgroundColor: '#FF3B30',
     paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 5,
+    backgroundColor: '#FF5733',
+    borderRadius: 10,
     alignItems: 'center',
   },
   unlinkButtonText: {

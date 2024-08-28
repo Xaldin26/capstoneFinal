@@ -25,39 +25,44 @@ const AddSchedule = () => {
       }
     };
 
+    const fetchSubjectsAndLinkedSubjects = async () => {
+      try {
+        const [subjectsResponse, linkedSubjectsResponse] = await Promise.all([
+          axios.get('https://lockup.pro/api/subs'),
+          axios.get('https://lockup.pro/api/linkedSubjects'),
+        ]);
+
+        if (subjectsResponse.data && Array.isArray(subjectsResponse.data.data)) {
+          setSubjects(subjectsResponse.data.data);
+        } else {
+          console.error('Unexpected data format for subjects:', subjectsResponse.data);
+          Alert.alert('Error', 'Failed to load subjects.');
+        }
+
+        if (linkedSubjectsResponse.data && Array.isArray(linkedSubjectsResponse.data.data)) {
+          setLinkedSubjects(linkedSubjectsResponse.data.data.map(item => item.subject_id));
+        } else {
+          console.error('Unexpected data format for linked subjects:', linkedSubjectsResponse.data);
+          Alert.alert('Error', 'Failed to load linked subjects.');
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        Alert.alert('Error', 'Failed to load subjects and linked subjects.');
+        setLoading(false);
+      }
+    };
+
     fetchUserData();
-
     fetchSubjectsAndLinkedSubjects();
+
+    const intervalId = setInterval(() => {
+      fetchSubjectsAndLinkedSubjects();
+    }, 1000); // Refresh every 1 second
+
+    return () => clearInterval(intervalId); // Cleanup interval on unmount
   }, []);
-
-  const fetchSubjectsAndLinkedSubjects = async () => {
-    try {
-      const [subjectsResponse, linkedSubjectsResponse] = await Promise.all([
-        axios.get('https://lockup.pro/api/subs'),
-        axios.get('https://lockup.pro/api/linkedSubjects'),
-      ]);
-
-      if (subjectsResponse.data && Array.isArray(subjectsResponse.data.data)) {
-        setSubjects(subjectsResponse.data.data);
-      } else {
-        console.error('Unexpected data format for subjects:', subjectsResponse.data);
-        Alert.alert('Error', 'Failed to load subjects.');
-      }
-
-      if (linkedSubjectsResponse.data && Array.isArray(linkedSubjectsResponse.data.data)) {
-        setLinkedSubjects(linkedSubjectsResponse.data.data.map(item => item.subject_id));
-      } else {
-        console.error('Unexpected data format for linked subjects:', linkedSubjectsResponse.data);
-        Alert.alert('Error', 'Failed to load linked subjects.');
-      }
-
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      Alert.alert('Error', 'Failed to load subjects and linked subjects.');
-      setLoading(false);
-    }
-  };
 
   const formatTime = (time) => {
     const [hour, minute] = time.split(':');
@@ -87,16 +92,13 @@ const AddSchedule = () => {
         console.log('Schedule added successfully:', response.data);
         Alert.alert('Success', 'Schedule added successfully!');
 
-        fetchSubjectsAndLinkedSubjects();
+        // No need to fetch data again as the interval will handle it
       } else {
         console.log('Unexpected response data:', response.data);
         Alert.alert('Error', 'Failed to add schedule.');
       }
     } catch (error) {
       console.error('Failed to add schedule:', error);
-      console.error('Error response data:', error.response?.data);
-      console.error('Error response status:', error.response?.status);
-      console.error('Error response headers:', error.response?.headers);
       Alert.alert('Error', 'Failed to add schedule.');
     }
   };
@@ -116,9 +118,11 @@ const AddSchedule = () => {
     >
       <Text style={[styles.tableCell, styles.subjectName]}>{subject.name}</Text>
       <Text style={[styles.tableCell, styles.subjectCode]}>{subject.code}</Text>
+      <Text style={[styles.tableCell, styles.dayCell]}>{subject.day}</Text>
       <Text style={[styles.tableCell, styles.timeCell]}>{formatTime(subject.start_time)}</Text>
       <Text style={[styles.tableCell, styles.timeCell]}>{formatTime(subject.end_time)}</Text>
       <Text style={[styles.tableCell, styles.sectionCell]}>{subject.section}</Text>
+      
     </TouchableOpacity>
   );
 
@@ -138,9 +142,11 @@ const AddSchedule = () => {
               <View style={styles.tableHeader}>
                 <Text style={[styles.tableHeaderCell, styles.subjectName]}>Subject Name</Text>
                 <Text style={[styles.tableHeaderCell, styles.subjectCode]}>Code</Text>
+                <Text style={[styles.tableHeaderCell, styles.dayCell]}>Day</Text>
                 <Text style={[styles.tableHeaderCell, styles.timeCell]}>Start Time</Text>
                 <Text style={[styles.tableHeaderCell, styles.timeCell]}>End Time</Text>
                 <Text style={[styles.tableHeaderCell, styles.sectionCell]}>Section</Text>
+                
               </View>
               {filteredSubjects.map(renderSubjectRow)}
             </View>
@@ -152,6 +158,7 @@ const AddSchedule = () => {
         <View style={styles.detailContainer}>
           <Text style={styles.detailTitle}>{selectedSubject.name}</Text>
           <Text style={styles.detailText}>Code: {selectedSubject.code}</Text>
+          <Text style={styles.detailText}>Every: {selectedSubject.day}</Text>
           <Text style={styles.detailText}>Time: {formatTime(selectedSubject.start_time)} to {formatTime(selectedSubject.end_time)}</Text>
           <Text style={styles.detailText}>Section: {selectedSubject.section}</Text>
           <Text style={styles.detailText}>{selectedSubject.description}</Text>
@@ -174,7 +181,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#ffffff', // Example: background color similar to UnlinkSubjectScreen
+    backgroundColor: '#ffffff',
   },
   label: {
     fontSize: 20,
@@ -193,105 +200,106 @@ const styles = StyleSheet.create({
   },
   table: {
     borderWidth: 1,
-    borderColor: '#dcdcdc', // Example: border color similar to UnlinkSubjectScreen
-    borderRadius: 8, // Example: adjusted border radius
+    borderColor: '#dcdcdc',
+    borderRadius: 8,
     overflow: 'hidden',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#007BFF', // Example: background color similar to UnlinkSubjectScreen
-    paddingVertical: 10, // Adjusted padding
-    paddingHorizontal: 8, // Adjusted padding
+    backgroundColor: '#007BFF',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
   },
   tableHeaderCell: {
-    padding: 12, // Adjusted padding
-    fontWeight: '600', // Adjusted font weight
-    color: '#ffffff', // Example: text color similar to UnlinkSubjectScreen
+    padding: 12,
+    fontWeight: '600',
+    color: '#ffffff',
     textAlign: 'center',
   },
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#dcdcdc', // Example: border color similar to UnlinkSubjectScreen
+    borderBottomColor: '#dcdcdc',
   },
   tableCell: {
-    padding: 12, // Adjusted padding
+    padding: 12,
     textAlign: 'center',
   },
   subjectName: {
     flex: 2,
-    minWidth: 180, // Adjusted minWidth
+    minWidth: 180,
   },
   subjectCode: {
     flex: 1,
-    minWidth: 100, // Adjusted minWidth
+    minWidth: 100,
   },
   timeCell: {
     flex: 1,
-    minWidth: 100, // Adjusted minWidth
+    minWidth: 100,
   },
   sectionCell: {
     flex: 1,
-    minWidth: 100, // Adjusted minWidth
+    minWidth: 100,
+  },
+  dayCell: {
+    flex: 1,
+    minWidth: 100,
   },
   selectedRow: {
-    backgroundColor: '#f0f0f0', // Example: background color similar to UnlinkSubjectScreen
+    backgroundColor: '#f0f0f0',
   },
   detailContainer: {
     marginTop: 20,
     padding: 20,
-    borderRadius: 8, // Adjusted border radius
-    backgroundColor: '#ffffff', // Example: background color similar to UnlinkSubjectScreen
-    shadowColor: '#000', // Adjusted shadow color
-    shadowOffset: { width: 0, height: 4 }, // Adjusted shadow offset
-    shadowOpacity: 0.2, // Adjusted shadow opacity
-    shadowRadius: 6, // Adjusted shadow radius
-    elevation: 3, // Adjusted elevation
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   detailTitle: {
-    fontSize: 24, // Adjusted font size
-    fontWeight: '600', // Adjusted font weight
-    marginBottom: 12, // Adjusted margin
-    color: '#333', // Example: text color similar to UnlinkSubjectScreen
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
   detailText: {
     fontSize: 16,
-    marginVertical: 4, // Adjusted margin
-    color: '#555', // Example: text color similar to UnlinkSubjectScreen
+    marginBottom: 5,
   },
   readMore: {
-    fontSize: 16,
-    color: '#007BFF', // Example: link color similar to UnlinkSubjectScreen
-    marginTop: 12, // Adjusted margin
+    color: '#007BFF',
+    fontWeight: 'bold',
+    marginTop: 10,
   },
   button: {
     marginTop: 20,
-    paddingVertical: 14, // Adjusted padding
-    backgroundColor: '#007BFF', // Example: button color similar to UnlinkSubjectScreen
-    borderRadius: 8, // Adjusted border radius
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#007BFF',
+    borderRadius: 8,
     alignItems: 'center',
   },
   buttonText: {
-    color: '#ffffff', // Example: text color similar to UnlinkSubjectScreen
-    fontSize: 18,
-    fontWeight: '600', // Adjusted font weight
+    color: '#ffffff',
+    fontSize: 16,
   },
   unlinkButton: {
     marginTop: 10,
-    paddingVertical: 14, // Adjusted padding
-    backgroundColor: '#FF4136', // Example: button color similar to UnlinkSubjectScreen
-    borderRadius: 8, // Adjusted border radius
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#FF5733',
+    borderRadius: 8,
     alignItems: 'center',
   },
   unlinkButtonText: {
-    color: '#ffffff', // Example: text color similar to UnlinkSubjectScreen
-    fontSize: 18,
-    fontWeight: '600', // Adjusted font weight
+    color: '#ffffff',
+    fontSize: 16,
   },
   loader: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
   },
 });
 
