@@ -432,6 +432,10 @@ const styles = StyleSheet.create({
     top: 10,
     right: 10,
   },
+  dateText: {
+    fontSize: 18,
+    color: '#666',
+  },
 });
 
 export default HomeScreen;

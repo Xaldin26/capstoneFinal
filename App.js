@@ -144,6 +144,14 @@ function CustomDrawerContent(props) {
           if (parsedData.loggedIn) {
             setUserName(parsedData.fullname || 'User');
             setUserEmail(parsedData.email || '');
+
+            // Fetch subjects
+            const response = await axios.get('https://your-api-endpoint/subjects', {
+              headers: {
+                Authorization: `Bearer ${parsedData.token}`, // or however you handle auth
+              },
+            });
+            setSubjects(response.data.subjects);
           }
         }
       } catch (error) {
@@ -173,12 +181,7 @@ function CustomDrawerContent(props) {
         <Image source={{ uri: 'https://via.placeholder.com/100' }} style={{ width: 100, height: 100, borderRadius: 50 }} />
         <Text style={styles.drawerHeaderText}>{userName}</Text>
         <Text style={styles.drawerEmailText}>{userEmail}</Text>
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => props.navigation.navigate('ProfileScreen')}
-        >
-          <Text style={styles.editButtonText}>Edit Profile</Text>
-        </TouchableOpacity>
+        
       </View>
       <DrawerItemList {...props} />
       <DrawerItem
@@ -187,6 +190,7 @@ function CustomDrawerContent(props) {
           <Icon name="sign-out" color={color} size={size} />
         )}
         onPress={handleLogout}
+        style={styles.logoutButton}
       />
     </DrawerContentScrollView>
   );
@@ -370,6 +374,9 @@ const styles = StyleSheet.create({
   editButtonText: {
     color: '#ffffff',
     fontWeight: 'bold',
+  },
+  logoutButton: {
+    marginTop: 350, // This ensures the button is pushed to the bottom
   },
 });
 

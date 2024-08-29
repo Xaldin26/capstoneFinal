@@ -22,7 +22,22 @@ const LoginScreen = ({ navigation }) => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const userData = await AsyncStorage.getItem("user");
+      if (userData) {
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: "DrawerNavigatorStudent" }],
+          })
+        );
+      }
+    };
+
+    checkLoginStatus();
+  }, [navigation]);
+
   const handleLogin = async () => {
     setLoading(true);
     try {
