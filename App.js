@@ -22,6 +22,7 @@ import MailScreenStudent from "./src/views/screensStudent/MailScreenStudent";
 import UnlinkSubjectScreen from "./src/views/screens/UnlinkSubjectScreen";
 import QrScanWithUser from "./src/views/screensStudent/QrScanWithUser";
 import ScanningChoice from "./src/views/screensStudent/ScanningChoice";
+import VerifyPin from "./src/views/screens/VerifyPin";
 
 // Define Navigators
 const Stack = createNativeStackNavigator();
