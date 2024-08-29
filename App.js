@@ -53,7 +53,7 @@ function InstructorTabNavigator() {
       />
       <Tab.Screen 
         name="Unlock" 
-        component={UnlockScreen} 
+        component={VerifyPin} 
         options={{
           tabBarIcon: () => (
             <View style={styles.iconContainer}>
@@ -319,6 +319,11 @@ function App() {
         <Stack.Screen
           name="QrScanner"
           component={QrScanner}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="UnlockScreen"
+          component={UnlockScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

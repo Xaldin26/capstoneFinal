@@ -17,9 +17,6 @@ import Loader from "../components/Loader";
 import axios from "axios"; // For sending API requests
 import { CommonActions } from '@react-navigation/native'; // Import CommonActions for navigation
 
-// Remove the image import
-// import ccsLogo from "../../img/lck.png"; // Import the image
-
 const VerifyPin = ({ navigation }) => {
   const [pin, setPin] = React.useState("");
   const [error, setError] = React.useState(null);
@@ -48,7 +45,7 @@ const VerifyPin = ({ navigation }) => {
     setLoading(true);
     try {
       const response = await axios.post(
-        "https://lockup.pro/api/verify-pin",
+        "http://192.168.1.16:8000/api/verify-pinDoor",
         { pin: pin },
         {
           headers: {
@@ -57,23 +54,16 @@ const VerifyPin = ({ navigation }) => {
         }
       );
 
-      // Log the API response data
       console.log('API Response:', response.data);
 
       if (response.data.success) {
-        // Log the user data
         console.log('User data received:', response.data.user);
 
         // Save user data to AsyncStorage
         await AsyncStorage.setItem("userData", JSON.stringify(response.data.user));
 
-        // Navigate to the HomeScreen within DrawerNavigator and reset the stack
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: 'DrawerNavigator', params: { screen: 'HomeScreen' } }],
-          })
-        );
+        // Navigate to UnlockScreen instead of replacing
+        navigation.navigate('UnlockScreen');
       } else {
         Dialog.show({
           type: ALERT_TYPE.DANGER,
@@ -83,7 +73,6 @@ const VerifyPin = ({ navigation }) => {
         });
       }
     } catch (error) {
-      // Log the full error response for better debugging
       if (error.response) {
         console.log('Login error:', error.response);
         console.log('Status:', error.response.status);
@@ -109,8 +98,6 @@ const VerifyPin = ({ navigation }) => {
         <Loader visible={loading} />
         <ScrollView style={styles.svContainer}>
           <View style={styles.spacer} />
-          {/* Remove the Image component */}
-          {/* <Image style={styles.image} source={ccsLogo} /> */}
           <Text style={styles.textTitle}>LOGIN AS INSTRUCTOR</Text>
           <Text style={styles.textSubtitle}>Enter your 4-digit PIN</Text>
           <View style={styles.viewContainer}>
@@ -157,14 +144,6 @@ const styles = StyleSheet.create({
   viewContainer: {
     paddingVertical: 20,
   },
-  // Remove the image style
-  // image: {
-  //   width: 255,
-  //   height: 200,
-  //   alignSelf: "center",
-  //   marginBottom: 25,
-  //   marginTop: 70, // Add marginTop to move the image down
-  // },
 });
 
 export default VerifyPin;

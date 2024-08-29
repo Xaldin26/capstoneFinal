@@ -251,8 +251,9 @@ const HomeScreen = ({ navigation }) => {
       </View>
       {renderContent()}
       <Animated.View style={[styles.timeContainer, { opacity }]}>
-        <Text style={styles.timeText}>{getCurrentTimeFormatted()}</Text>
         <Text style={styles.dateText}>{getFormattedDate()}</Text>
+        <Text style={styles.timeText}>{getCurrentTimeFormatted()}</Text>
+        
       </Animated.View>
     </SafeAreaView>
   );
@@ -329,12 +330,15 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: '#333',
+    textAlign: 'right',
+    marginLeft: -10,
   },
   subText: {
     fontSize: 16,
     color: '#666',
     textAlign: 'left',
-    marginLeft: 10,
+    marginLeft: 30,
+    marginBottom: 15,
   },
   boxContainer: {
     marginTop: 100,
