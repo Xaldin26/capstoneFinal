@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   button: {
-    backgroundColor: "#00796B", // A modern light teal color
+    backgroundColor: "#1E293B", // A modern light teal color
     paddingVertical: 15,
     borderRadius: 5,
     marginBottom: 20,

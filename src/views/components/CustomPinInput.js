@@ -31,7 +31,7 @@ const CustomPinInput = ({ value, onChangeText }) => {
             style={[
               styles.circle,
               {
-                backgroundColor: value.length > index ? "#00796B" : "#E0E0E0", // Light gray for unfilled
+                backgroundColor: value.length > index ? "#1E293B" : "#E0E0E0", // Light gray for unfilled
               },
             ]}
           />
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   numberButton: {
     width: 70,
     height: 70,
-    backgroundColor: "#00796B", // Teal color for buttons
+    backgroundColor: "#1E293B", // Teal color for buttons
     borderRadius: 35,
     alignItems: "center",
     justifyContent: "center",

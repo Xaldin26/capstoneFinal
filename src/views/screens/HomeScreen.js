@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     minWidth: 100,
   },
   selectedButton: {
-    backgroundColor: '#6200ea',
+    backgroundColor: '#1E293B',
   },
   navButtonText: {
     color: '#333',
@@ -333,6 +333,8 @@ const styles = StyleSheet.create({
   subText: {
     fontSize: 16,
     color: '#666',
+    textAlign: 'left',
+    marginLeft: 10,
   },
   boxContainer: {
     marginTop: 100,
@@ -396,7 +398,7 @@ const styles = StyleSheet.create({
   },
   readMore: {
     fontSize: 14,
-    color: '#6200ea',
+    color: '#1E88E5',
   },
   noDataText: {
     fontSize: 14,

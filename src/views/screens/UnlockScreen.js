@@ -1,45 +1,78 @@
-import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Button, StyleSheet, Alert } from 'react-native';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const UnlockScreen = () => {
-  const serverIp = '192.168.1.24'; // Replace with the actual IP of your Flask server
+  const [userId, setUserId] = useState(null);
+  const [currentStatus, setCurrentStatus] = useState('');
 
-  const sendCommand = async (command) => {
-    try {
-      const response = await fetch(`http://${serverIp}:5000/control_relay`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ command }),
-      });
-
-      const result = await response.json();
-      if (response.ok) {
-        Alert.alert('Success', `System is ${result.status}`);
-      } else {
-        Alert.alert('Error', 'Failed to send command');
+  useEffect(() => {
+    // Function to retrieve user ID from AsyncStorage
+    const getUserId = async () => {
+      try {
+        const userData = await AsyncStorage.getItem('userData');
+        if (userData) {
+          const parsedData = JSON.parse(userData);
+          setUserId(parsedData.id); // Assume userData has an id field
+        }
+      } catch (error) {
+        console.error('Failed to load user data', error);
       }
+    };
+
+    getUserId();
+  }, []);
+
+  const getCurrentTime = () => {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const formattedHours = hours < 10 ? `0${hours}` : hours;
+    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+    return `${formattedHours}:${formattedMinutes}`; // H:i format
+  };
+
+  const getCurrentDay = () => {
+    return new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  };
+
+  const handleStatusChange = async (status) => {
+    if (!userId) {
+      Alert.alert('Error', 'User ID not found');
+      return;
+    }
+
+    const currentTime = getCurrentTime();
+    const currentDay = getCurrentDay();
+
+    try {
+      await axios.post('http://192.168.1.16:8000/api/logs', {
+        user_id: userId,
+        status,
+        time: currentTime,  // Ensure this format is 'H:i'
+        day: currentDay,
+      });
+      setCurrentStatus(status);
+      Alert.alert('Success', `Status updated to ${status}`);
     } catch (error) {
-      Alert.alert('Error', 'Network error, please try again later.');
+      Alert.alert('Error', 'Failed to update status');
+      console.error('Failed to update status', error.response?.data || error.message);
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Lock Control App</Text>
-      <TouchableOpacity
-        style={[styles.button, styles.lockButton]}
-        onPress={() => sendCommand('lock')}
-      >
-        <Text style={styles.buttonText}>Lock</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.button, styles.unlockButton]}
-        onPress={() => sendCommand('unlock')}
-      >
-        <Text style={styles.buttonText}>Unlock</Text>
-      </TouchableOpacity>
+      <Text style={styles.title}>Unlock/Lock Screen</Text>
+      <Button
+        title="Unlock"
+        onPress={() => handleStatusChange('unlock')}
+      />
+      <Button
+        title="Lock"
+        onPress={() => handleStatusChange('lock')}
+      />
+      <Text style={styles.statusText}>Current Status: {currentStatus}</Text>
     </View>
   );
 };
@@ -49,27 +82,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
+    padding: 20,
   },
   title: {
     fontSize: 24,
+    fontWeight: 'bold',
     marginBottom: 20,
   },
-  button: {
-    padding: 15,
-    borderRadius: 5,
-    margin: 10,
-    width: '80%',
-    alignItems: 'center',
-  },
-  lockButton: {
-    backgroundColor: '#e74c3c',
-  },
-  unlockButton: {
-    backgroundColor: '#2ecc71',
-  },
-  buttonText: {
-    color: '#fff',
+  statusText: {
+    marginTop: 20,
     fontSize: 18,
   },
 });
