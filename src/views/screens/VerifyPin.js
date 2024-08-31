@@ -45,7 +45,7 @@ const VerifyPin = ({ navigation }) => {
     setLoading(true);
     try {
       const response = await axios.post(
-        "http://192.168.1.16:8000/api/verify-pinDoor",
+        "https://lockup.pro:8000/api/verify-pinDoor",
         { pin: pin },
         {
           headers: {
@@ -98,7 +98,7 @@ const VerifyPin = ({ navigation }) => {
         <Loader visible={loading} />
         <ScrollView style={styles.svContainer}>
           <View style={styles.spacer} />
-          <Text style={styles.textTitle}>LOGIN AS INSTRUCTOR</Text>
+          <Text style={styles.textTitle}>VERIFY IF YOUR IN ACCESS</Text>
           <Text style={styles.textSubtitle}>Enter your 4-digit PIN</Text>
           <View style={styles.viewContainer}>
             <CustomPinInput

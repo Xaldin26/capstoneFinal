@@ -47,7 +47,7 @@ const UnlockScreen = () => {
     const currentDay = getCurrentDay();
 
     try {
-      await axios.post('http://192.168.1.16:8000/api/logs', {
+      await axios.post('https://lockup.pro/api/logs', {
         user_id: userId,
         status,
         time: currentTime,  // Ensure this format is 'H:i'
