@@ -57,6 +57,14 @@ const HomeScreen = ({ navigation }) => {
     };
   }, []);
 
+  useEffect(() => {
+    if (matchedSubjects.length > 0) {
+      saveCurrentSchedule(matchedSubjects[0]); // Save the first matching subject
+    } else {
+      saveCurrentSchedule(null); // Clear if no matching subject
+    }
+  }, [matchedSubjects]);
+
   const getUserData = async () => {
     try {
       const userData = await AsyncStorage.getItem('userData');
@@ -67,6 +75,24 @@ const HomeScreen = ({ navigation }) => {
       console.error('Failed to load user data', error);
     }
   };
+
+  const saveCurrentSchedule = async (subject) => {
+    try {
+      if (subject) {
+        // Ensure the instructor name is included in the subject data
+        const subjectWithInstructor = {
+          ...subject,
+          instructorName: subjectInstructorMap[subject.id]?.instructorName || 'Unknown Instructor',
+        };
+        await AsyncStorage.setItem('currentSchedule', JSON.stringify(subjectWithInstructor));
+      } else {
+        await AsyncStorage.removeItem('currentSchedule');
+      }
+    } catch (error) {
+      console.error('Failed to save schedule data', error);
+    }
+  };
+  
 
   const fetchData = async () => {
     try {
@@ -137,14 +163,22 @@ const HomeScreen = ({ navigation }) => {
     return currentTime.toLocaleDateString('en-US', { weekday: 'long' });
   };
 
-
   const isTimeWithinRange = (startTime, endTime, day) => {
-    const formattedCurrentTime = getCurrentTimeFormatted();
-    return formattedCurrentTime >= formatTime(startTime) && formattedCurrentTime <= formatTime(endTime) && day === getCurrentDay();
+    const [startHours, startMinutes] = startTime.split(':');
+    const [endHours, endMinutes] = endTime.split(':');
+
+    const start = new Date(currentTime);
+    const end = new Date(currentTime);
+    const now = new Date(currentTime);
+
+    start.setHours(parseInt(startHours), parseInt(startMinutes), 0);
+    end.setHours(parseInt(endHours), parseInt(endMinutes), 0);
+
+    // Check if the current time falls within the start and end time and if the day matches
+    return now >= start && now <= end && day === getCurrentDay();
   };
 
   const matchingSubjects = subjects.filter(subject => isTimeWithinRange(subject.start_time, subject.end_time, subject.day));
-
 
   if (loading) {
     return <ActivityIndicator size="large" color="#6200ea" style={styles.loader} />;
@@ -253,7 +287,6 @@ const HomeScreen = ({ navigation }) => {
       <Animated.View style={[styles.timeContainer, { opacity }]}>
         <Text style={styles.dateText}>{getFormattedDate()}</Text>
         <Text style={styles.timeText}>{getCurrentTimeFormatted()}</Text>
-        
       </Animated.View>
     </SafeAreaView>
   );
@@ -351,7 +384,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
- 
   scheduleText: {
     marginTop: 20,
     fontSize: 20,
@@ -431,7 +463,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#4CAF50', // Green color
     marginBottom: 1,
-    
   },
   timeContainer: {
     position: 'absolute',
@@ -445,5 +476,3 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
-
-

@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   StyleSheet,
   SafeAreaView,
   View,
   Text,
   ScrollView,
+  Animated
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -12,22 +13,52 @@ import {
   Dialog,
   AlertNotificationRoot,
 } from "react-native-alert-notification";
-import CustomPinInput from "../components/CustomPinInput"; // Import the new component
+import CustomPinInput from "../components/CustomPinInput";
 import Loader from "../components/Loader";
-import axios from "axios"; // For sending API requests
-import { CommonActions } from '@react-navigation/native'; // Import CommonActions for navigation
+import axios from "axios";
 
 const VerifyPin = ({ navigation }) => {
-  const [pin, setPin] = React.useState("");
-  const [error, setError] = React.useState(null);
-  const [loading, setLoading] = React.useState(false);
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [currentSchedule, setCurrentSchedule] = useState(null);
+  const opacity = useRef(new Animated.Value(1)).current; // For blinking effect
 
-  // Automatically validate the PIN when it reaches 4 digits
-  React.useEffect(() => {
+  useEffect(() => {
+    retrieveCurrentSchedule(); // Retrieve schedule data on component mount
+
+    // Start blinking effect
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
     if (pin.length === 4) {
       validate();
     }
   }, [pin]);
+
+  const retrieveCurrentSchedule = async () => {
+    try {
+      const scheduleData = await AsyncStorage.getItem('currentSchedule');
+      if (scheduleData) {
+        const schedule = JSON.parse(scheduleData);
+        setCurrentSchedule(schedule);
+      }
+    } catch (error) {
+      console.error('Failed to load schedule data', error);
+    }
+  };
 
   const validate = () => {
     if (!pin) {
@@ -45,7 +76,7 @@ const VerifyPin = ({ navigation }) => {
     setLoading(true);
     try {
       const response = await axios.post(
-        "https://lockup.pro:8000/api/verify-pinDoor",
+        "https://lockup.pro/api/verify-pinDoor",
         { pin: pin },
         {
           headers: {
@@ -54,17 +85,16 @@ const VerifyPin = ({ navigation }) => {
         }
       );
 
-      console.log('API Response:', response.data);
+      const user = response.data.user;
 
       if (response.data.success) {
-        console.log('User data received:', response.data.user);
-
         // Save user data to AsyncStorage
-        await AsyncStorage.setItem("userData", JSON.stringify(response.data.user));
+        await AsyncStorage.setItem("userData", JSON.stringify(user));
 
-        // Navigate to UnlockScreen instead of replacing
+        // Navigate to UnlockScreen
         navigation.navigate('UnlockScreen');
       } else {
+        setError(response.data.message);
         Dialog.show({
           type: ALERT_TYPE.DANGER,
           title: "ERROR",
@@ -73,22 +103,16 @@ const VerifyPin = ({ navigation }) => {
         });
       }
     } catch (error) {
-      if (error.response) {
-        console.log('Login error:', error.response);
-        console.log('Status:', error.response.status);
-        console.log('Data:', error.response.data);
-      } else {
-        console.log('Login error:', error.message);
-      }
-
+      setError(error.response?.data?.message || error.message || 'An error occurred');
       Dialog.show({
         type: ALERT_TYPE.DANGER,
         title: "ERROR",
-        textBody: error.response?.data?.message || error.message || error,
+        textBody: error.response?.data?.message || error.message || 'An error occurred',
         button: "Close",
       });
     } finally {
       setLoading(false);
+      setPin("");
     }
   };
 
@@ -98,7 +122,20 @@ const VerifyPin = ({ navigation }) => {
         <Loader visible={loading} />
         <ScrollView style={styles.svContainer}>
           <View style={styles.spacer} />
-          <Text style={styles.textTitle}>VERIFY IF YOUR IN ACCESS</Text>
+
+          {/* Display Current Schedule in a Box */}
+          {currentSchedule && (
+            <View style={styles.box}>
+              {/* Blinking "Access By" text */}
+              <Animated.Text style={[styles.occupiedText, { opacity }]}>Access By:</Animated.Text>
+              <Text style={styles.scheduleInstructor}>{currentSchedule.instructorName || 'Unknown Instructor'}</Text>
+              <Text style={styles.scheduleTitle}>Course: {currentSchedule.name}</Text>
+              <Text style={styles.scheduleCode}>Code: {currentSchedule.code}</Text>
+              <Text style={styles.scheduleTime}>Time: {formatTime(currentSchedule.start_time)} - {formatTime(currentSchedule.end_time)}</Text>
+            </View>
+          )}
+
+          <Text style={styles.textTitle}>VERIFY IF YOU HAVE ACCESS</Text>
           <Text style={styles.textSubtitle}>Enter your 4-digit PIN</Text>
           <View style={styles.viewContainer}>
             <CustomPinInput
@@ -116,30 +153,76 @@ const VerifyPin = ({ navigation }) => {
   );
 };
 
+const formatTime = (time) => {
+  const [hours, minutes] = time.split(':');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const formattedHours = hours % 12 || 12;
+  return `${formattedHours}:${minutes} ${ampm}`;
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F0F0F0", // Light background color
+    backgroundColor: "#F0F0F0",
   },
   svContainer: {
-    paddingTop: 20,
+    paddingTop: -5,
     paddingHorizontal: 20,
   },
   spacer: {
-    height: 20, // Adjust height as needed
+    height: 20,
+  },
+  box: {
+    backgroundColor: '#e0e0e0',
+    padding: 20,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 15,
+  },
+  scheduleTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#333",
+    marginBottom: 5,
+  },
+  scheduleCode: {
+    fontSize: 16,
+    textAlign: "center",
+    color: "#666",
+    marginBottom: 5,
+  },
+  scheduleTime: {
+    fontSize: 16,
+    textAlign: "center",
+    color: "#666",
+    marginBottom: 5,
+  },
+  scheduleInstructor: {
+    fontSize: 16,
+    textAlign: "center",
+    color: "#666",
+    marginBottom: 5,
+  },
+  occupiedText: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: '#4CAF50', // Green color for occupied
+    marginBottom: 10,
   },
   textTitle: {
     fontSize: 25,
     textAlign: "center",
     fontWeight: "bold",
-    color: "#333", // Darker text for contrast
+    color: "#333",
     marginBottom: 10,
   },
   textSubtitle: {
     fontSize: 16,
     textAlign: "center",
-    color: "#666", // Lighter gray text color
-    marginBottom: -20, // Adjust space between the subtitle and the input
+    color: "#666",
+    marginBottom: -20,
   },
   viewContainer: {
     paddingVertical: 20,

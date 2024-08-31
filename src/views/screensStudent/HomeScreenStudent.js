@@ -21,9 +21,13 @@ const HomeScreenStudent = ({ navigation }) => {
           console.log(parsedData);
         }
         setUserDetails(parsedData);
+      } else {
+        // Navigate to login screen if no valid user data found
+        navigation.navigate("LoginScreen");
       }
     } catch (error) {
       console.error("Failed to load user data", error);
+      navigation.navigate("LoginScreen"); // Navigate to login screen if an error occurs
     }
   };
 
