@@ -1,55 +1,264 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Image } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  View, 
+  Text, 
+  ActivityIndicator, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ScrollView, 
+  Animated, 
+  SafeAreaView,
+  Image 
+} from 'react-native';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HomeScreenStudent = ({ navigation }) => {
-  const [userDetails, setUserDetails] = React.useState(null); // Initialize as null
-  const [selectedButton, setSelectedButton] = React.useState('Overview'); // Default to 'Overview'
+  const [userDetails, setUserDetails] = useState(null);
+  const [selectedButton, setSelectedButton] = useState('Overview');
+  const [subjects, setSubjects] = useState([]);
+  const [matchedSubjects, setMatchedSubjects] = useState([]);
+  const [instructors, setInstructors] = useState([]);
+  const [subjectInstructorMap, setSubjectInstructorMap] = useState({});
+  const [instructorSubjectMap, setInstructorSubjectMap] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  React.useEffect(() => {
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
     getUserData();
+    fetchData();
+    const intervalId = setInterval(fetchData, 1000);
+
+    const timeIntervalId = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    return () => {
+      clearInterval(intervalId);
+      clearInterval(timeIntervalId);
+    };
   }, []);
+
+  useEffect(() => {
+    if (matchedSubjects.length > 0) {
+      saveCurrentSchedule(matchedSubjects[0]); // Save the first matching subject
+    } else {
+      saveCurrentSchedule(null); // Clear if no matching subject
+    }
+  }, [matchedSubjects]);
 
   const getUserData = async () => {
     try {
-      const userData = await AsyncStorage.getItem("userData");
-
+      const userData = await AsyncStorage.getItem('userData');
       if (userData) {
-        const parsedData = JSON.parse(userData);
-        if (parsedData.loggedIn) {
-          console.log("Home Screen");
-          console.log(parsedData);
-        }
-        setUserDetails(parsedData);
-      } else {
-        // Navigate to login screen if no valid user data found
-        navigation.navigate("LoginScreen");
+        setUserDetails(JSON.parse(userData));
       }
     } catch (error) {
-      console.error("Failed to load user data", error);
-      navigation.navigate("LoginScreen"); // Navigate to login screen if an error occurs
+      console.error('Failed to load user data', error);
     }
   };
+
+  const saveCurrentSchedule = async (subject) => {
+    try {
+      if (subject) {
+        // Ensure the instructor name is included in the subject data
+        const subjectWithInstructor = {
+          ...subject,
+          instructorName: subjectInstructorMap[subject.id]?.instructorName || 'Unknown Instructor',
+        };
+        await AsyncStorage.setItem('currentSchedule', JSON.stringify(subjectWithInstructor));
+      } else {
+        await AsyncStorage.removeItem('currentSchedule');
+      }
+    } catch (error) {
+      console.error('Failed to save schedule data', error);
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      const subjectsResponse = await axios.get('https://lockup.pro/api/subs');
+      const fetchedSubjects = subjectsResponse.data.data || [];
+      setSubjects(fetchedSubjects);
+
+      const subjectIdResponse = await axios.get('https://lockup.pro/api/linkedSubjects');
+      const subjectIds = subjectIdResponse.data.data?.map(item => item.subject_id) || [];
+
+      const instructorsResponse = await axios.get('https://lockup.pro/api/instructors');
+      const fetchedInstructors = instructorsResponse.data.data || [];
+      setInstructors(fetchedInstructors);
+
+      const instructorSubjectResponse = await axios.get('https://lockup.pro/api/linkedSubjects');
+      const instructorSubjects = instructorSubjectResponse.data.data || [];
+
+      const subjectInstructorMap = {};
+      const instructorSubjectMap = {};
+
+      instructorSubjects.forEach(instructorSubject => {
+        const subject = fetchedSubjects.find(sub => sub.id === instructorSubject.subject_id);
+        const instructor = fetchedInstructors.find(inst => inst.id === instructorSubject.user_id);
+        if (subject && instructor) {
+          subjectInstructorMap[subject.id] = subjectInstructorMap[subject.id] || {
+            ...subject,
+            instructorName: instructor.username,
+          };
+          instructorSubjectMap[instructor.id] = instructorSubjectMap[instructor.id] || [];
+          instructorSubjectMap[instructor.id].push(subject);
+        }
+      });
+
+      setSubjectInstructorMap(subjectInstructorMap);
+
+      const filteredSubjects = fetchedSubjects.filter(subject => subjectIds.includes(subject.id));
+      setMatchedSubjects(filteredSubjects);
+      setInstructorSubjectMap(instructorSubjectMap);
+      setLoading(false);
+    } catch (error) {
+      setError(error);
+      setLoading(false);
+    }
+  };
+
+  const formatTime = (time) => {
+    const [hours, minutes] = time.split(':');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const formattedHours = hours % 12 || 12;
+    return `${formattedHours}:${minutes} ${ampm}`;
+  };
+
+  const getCurrentTimeFormatted = () => {
+    const hours = currentTime.getHours();
+    const minutes = currentTime.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const formattedHours = hours % 12 || 12;
+    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+    return `${formattedHours}:${formattedMinutes} ${ampm}`;
+  };
+
+  const getFormattedDate = () => {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return currentTime.toLocaleDateString('en-US', options);
+  };
+
+  const getCurrentDay = () => {
+    return currentTime.toLocaleDateString('en-US', { weekday: 'long' });
+  };
+
+  const isTimeWithinRange = (startTime, endTime, day) => {
+    const [startHours, startMinutes] = startTime.split(':');
+    const [endHours, endMinutes] = endTime.split(':');
+
+    const start = new Date(currentTime);
+    const end = new Date(currentTime);
+    const now = new Date(currentTime);
+
+    start.setHours(parseInt(startHours), parseInt(startMinutes), 0);
+    end.setHours(parseInt(endHours), parseInt(endMinutes), 0);
+
+    // Check if the current time falls within the start and end time and if the day matches
+    return now >= start && now <= end && day === getCurrentDay();
+  };
+
+  const matchingSubjects = subjects.filter(subject => isTimeWithinRange(subject.start_time, subject.end_time, subject.day));
+
+  if (loading) {
+    return <ActivityIndicator size="large" color="#6200ea" style={styles.loader} />;
+  }
+
+  if (error) {
+    return <Text style={styles.error}>Error: {error.message}</Text>;
+  }
+
+  const groupedSubjects = Object.keys(instructorSubjectMap).map(instructorId => ({
+    instructorName: instructors.find(inst => inst.id === parseInt(instructorId))?.username || 'Unknown Instructor',
+    subjects: instructorSubjectMap[instructorId] || [],
+  }));
 
   const renderContent = () => {
     switch (selectedButton) {
       case 'Overview':
         return (
-          <View style={styles.overviewContainer}>
-            <Image
-              source={require('../imglogo/ccslogo.png')} // Replace with the path to your local image
-              style={styles.image}
-            />
-            <View style={styles.textContainer}>
-              <Text style={styles.mainText}>Mac Laboratory</Text>
-              <Text style={styles.subText}>COLLEGE OF COMPUTER STUDIES</Text>
-            </View>
-            <View style={styles.boxContainer}>
-              <View style={styles.box}>
-                <Text style={styles.boxText}>Centered Box</Text>
+          <ScrollView style={styles.scrollableContainer}>
+            {/* Laboratory Guidelines Text */}
+            <Text style={styles.guidelinesText}>Laboratory Guidelines</Text>
+
+            {/* Horizontally scrollable boxes */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScrollView}>
+              {/* Image inside the first scrollable box */}
+              <TouchableOpacity onPress={() => navigation.navigate('GeneralConductScreen')}>
+                <View style={styles.scrollBox}>
+                  <Image 
+                    source={require('../imglogo/lab.png')} // Replace with your image path
+                    style={styles.scrollBoxImage}
+                  />
+                  {/* General Conduct text */}
+                  <Text style={styles.scrollBoxText}>General Conduct</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Image inside the second scrollable box */}
+              <TouchableOpacity onPress={() => navigation.navigate('EquipmentUsageScreen')}>
+                <View style={styles.scrollBox}>
+                  <Image 
+                    source={require('../imglogo/equipment_usage.png')} // Replace with your image path
+                    style={styles.scrollBoxImage}
+                  />
+                  {/* Equipment Usage text */}
+                  <Text style={styles.scrollBoxText}>Equipment Usage</Text>
+                </View>
+              </TouchableOpacity>
+
+              {[...Array(2)].map((_, index) => (
+                <View key={index} style={styles.scrollBox}>
+                  <Text style={styles.scrollBoxText}>Box {index + 3}</Text>
+                </View>
+              ))}
+            </ScrollView>
+
+            <Text style={styles.scheduleText}>MACLAB SCHEDULE</Text>
+            {groupedSubjects.map(group => (
+              <View key={group.instructorName} style={styles.group}>
+                <Text style={styles.instructorHeader}>{group.instructorName}</Text>
+                {group.subjects.length > 0 ? (
+                  group.subjects.map(subject => (
+                    <View key={subject.id} style={styles.subjectContainer}>
+                      <Text style={styles.subjectTitle}>{subject.name}</Text>
+                      <Text style={styles.subjectCode}>Code: {subject.code}</Text>
+                      <Text style={styles.subjectDay}>Every: {subject.day}</Text>
+                      <Text style={styles.subjectTime}>Time: {formatTime(subject.start_time)} - {formatTime(subject.end_time)}</Text>
+                      <Text style={styles.subjectSection}>Section: {subject.section}</Text>
+                      <Text style={styles.subjectDescription}>
+                        {subject.description}
+                        <TouchableOpacity>
+                          <Text style={styles.readMore}> Read more →</Text>
+                        </TouchableOpacity>
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.noDataText}>No subjects available</Text>
+                )}
               </View>
-            </View>
-          </View>
+            ))}
+          </ScrollView>
         );
       case 'People':
         return <Text style={styles.contentText}>People Screen Content</Text>;
@@ -62,7 +271,7 @@ const HomeScreenStudent = ({ navigation }) => {
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
         <Text style={styles.welcomeText}>Welcome, </Text>
-        <Text style={styles.nameText}>{userDetails?.fullname || 'User'}</Text>
+        <Text style={styles.nameText}>{userDetails?.name || 'User'}</Text>
       </View>
       <View style={styles.navbar}>
         <TouchableOpacity
@@ -78,9 +287,11 @@ const HomeScreenStudent = ({ navigation }) => {
           <Text style={[styles.navButtonText, selectedButton === 'People' && styles.selectedButtonText]}>People</Text>
         </TouchableOpacity>
       </View>
-      <View style={styles.contentContainer}>
-        {renderContent()}
-      </View>
+      {renderContent()}
+      <Animated.View style={[styles.timeContainer, { opacity }]}>
+        <Text style={styles.dateText}>{getFormattedDate()}</Text>
+        <Text style={styles.timeText}>{getCurrentTimeFormatted()}</Text>
+      </Animated.View>
     </SafeAreaView>
   );
 };
@@ -105,12 +316,11 @@ const styles = StyleSheet.create({
   },
   navbar: {
     flexDirection: 'row',
-    justifyContent: 'flex-start', // Align buttons to the left
-    marginBottom: 20,
+    marginBottom: 10,
   },
   navButton: {
-    backgroundColor: '#e0e0e0', // Default button color
-    height: 35, // Set fixed height for buttons
+    backgroundColor: '#e0e0e0',
+    height: 35,
     paddingHorizontal: 15,
     borderRadius: 20,
     elevation: 5,
@@ -119,12 +329,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 10,
     alignItems: 'center',
-    justifyContent: 'center', // Center text vertically
-    marginRight: 10, // Space between buttons
-    minWidth: 100, // Minimum width of button
+    justifyContent: 'center',
+    marginRight: 10,
+    minWidth: 100,
   },
   selectedButton: {
-    backgroundColor: '#6200ea', // Color when selected
+    backgroundColor: '#1E293B',
   },
   navButtonText: {
     color: '#333',
@@ -132,61 +342,123 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   selectedButtonText: {
-    color: '#fff', // Text color when button is selected
+    color: '#fff',
   },
-  contentContainer: {
+  scrollableContainer: {
     flex: 1,
-    marginTop: 20,
   },
-  contentText: {
-    fontSize: 18,
-    color: "#333",
-  },
-  overviewContainer: {
-    position: 'relative', // Enable absolute positioning of child elements
-    flex: 1,
-    alignItems: 'flex-start', // Align content to the start
-    justifyContent: 'center', // Center content vertically if needed
-  },
-  image: {
-    position: 'absolute',
-    left: -110, // Align to the left
-    top: -20, // Align to the top
-    width: 280, // Set a small width for the logo
-    height: 65, // Set a small height for the logo
-    resizeMode: 'contain', // Ensure the image scales to fit within the dimensions
-  },
-  textContainer: {
-    position: 'absolute',
-    left: 50, // Align text to the right of the image
-    top: -15, // Adjust top position as needed
-    paddingLeft: 20, // Space between image and text
-  },
-  mainText: {
+  guidelinesText: {
     fontSize: 20,
+    fontWeight: '700',
+    color: '#333',
+    textAlign: 'left',
+    marginBottom: 10,
+  },
+  horizontalScrollView: {
+    marginBottom: 20,
+  },
+  scrollBox: {
+    width: 160,
+    height: 130,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scrollBoxImage: {
+    width: '100%',
+    height: '80%',  // Adjusting height to make space for the text
+    borderRadius: 10,
+  },
+  scrollBoxText: {
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#333',
-    fontFamily: 'Roboto',
+    marginTop: 5,
+    textAlign: 'center',
   },
-  subText: {
+  scheduleText: {
+    marginTop: 10,
+    fontSize: 25,
+    fontWeight: '700',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  group: {
+    marginBottom: 20,
+  },
+  instructorHeader: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 10,
+    color: '#333',
+  },
+  subjectContainer: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 10,
+    elevation: 2,
+    marginBottom: 10,
+  },
+  subjectTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  subjectCode: {
     fontSize: 14,
     color: '#666',
+  },
+  subjectDay: {
+    fontSize: 14,
+    color: '#666',
+  },
+  subjectTime: {
+    fontSize: 14,
+    color: '#666',
+  },
+  subjectSection: {
+    fontSize: 14,
+    color: '#666',
+  },
+  subjectDescription: {
+    fontSize: 14,
+    color: '#666',
+  },
+  readMore: {
+    fontSize: 14,
+    color: '#1E88E5',
+  },
+  noDataText: {
+    fontSize: 14,
+    color: '#333',
     textAlign: 'center',
-    fontFamily: 'Roboto',
+    marginTop: 10,
   },
-  boxContainer: {
-    marginTop: -250, // Reduced margin to move the box up
-    alignItems: 'center', // Center the box horizontally
-    width: '100%', // Ensure the box takes the full width available
+  loader: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  box: {
-    backgroundColor: '#e0e0e0', // Background color of the box
-    padding: 60,
-    borderRadius: 10,
-    width: '95%', // Width of the box
-    alignItems: 'center', // Center content inside the box
+  error: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    color: 'red',
+    fontSize: 18,
   },
-  boxText: {
+  timeContainer: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+  },
+  dateText: {
+    fontSize: 18,
+    color: '#666',
+  },
+  timeText: {
     fontSize: 18,
     color: '#333',
   },

@@ -25,7 +25,9 @@ const LoginScreen = ({ navigation }) => {
   useEffect(() => {
     const checkLoginStatus = async () => {
       const userData = await AsyncStorage.getItem("userData");
+      console.log("Checking login status. User data:", userData);
       if (userData) {
+        console.log("User is already logged in, navigating to DrawerNavigatorStudent.");
         navigation.dispatch(
           CommonActions.reset({
             index: 0,
@@ -39,19 +41,23 @@ const LoginScreen = ({ navigation }) => {
   }, [navigation]);
 
   const handleLogin = async () => {
+    console.log("Login attempt started. Username:", name);
     setLoading(true);
     try {
       const response = await axios.post("https://lockup.pro/api/student", {
         name,
         password,
       });
+      console.log("Login response received:", response.data);
 
       if (response.status === 200) {
         const userData = response.data;
         const userId = userData.id; // Extract the user's ID
+        console.log("Login successful. User ID:", userId);
 
         // Store user data in AsyncStorage, including the ID
         await AsyncStorage.setItem("userData", JSON.stringify(userData));
+        console.log("User data saved to AsyncStorage.");
 
         // Reset navigation stack and navigate to DrawerNavigatorStudent
         navigation.dispatch(
@@ -62,6 +68,7 @@ const LoginScreen = ({ navigation }) => {
         );
       }
     } catch (error) {
+      console.error("Network request failed:", error);
       if (error.response && error.response.status === 422) {
         const validationErrors = error.response.data.errors;
         const errorMessage = Object.values(validationErrors).flat().join("\n");
@@ -72,6 +79,7 @@ const LoginScreen = ({ navigation }) => {
           textBody: errorMessage,
           button: "Close",
         });
+        console.log("Validation error:", errorMessage);
       } else {
         setError("Failed to connect to the server");
         Dialog.show({
@@ -81,9 +89,9 @@ const LoginScreen = ({ navigation }) => {
           button: "Close",
         });
       }
-      console.error("Network request failed:", error);
     } finally {
       setLoading(false);
+      console.log("Login attempt finished.");
     }
   };
 

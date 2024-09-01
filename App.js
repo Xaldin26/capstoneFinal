@@ -23,6 +23,8 @@ import UnlinkSubjectScreen from "./src/views/screens/UnlinkSubjectScreen";
 import QrScanWithUser from "./src/views/screensStudent/QrScanWithUser";
 import ScanningChoice from "./src/views/screensStudent/ScanningChoice";
 import VerifyPin from "./src/views/screens/VerifyPin";
+import GeneralConductScreen from "./src/views/screensStudent/GeneralConductScreen";
+import EquipmentUsageScreen from "./src/views/screensStudent/EquipmentUsageScreen";
 
 // Define Navigators
 const Stack = createNativeStackNavigator();
@@ -145,14 +147,6 @@ function CustomDrawerContent(props) {
           if (parsedData.loggedIn) {
             setUserName(parsedData.fullname || 'User');
             setUserEmail(parsedData.email || '');
-
-            // Fetch subjects
-            const response = await axios.get('https://your-api-endpoint/subjects', {
-              headers: {
-                Authorization: `Bearer ${parsedData.token}`, // or however you handle auth
-              },
-            });
-            setSubjects(response.data.subjects);
           }
         }
       } catch (error) {
@@ -164,7 +158,10 @@ function CustomDrawerContent(props) {
 
   const handleLogout = async () => {
     try {
+      // Clear AsyncStorage
       await AsyncStorage.removeItem('userData');
+
+      // Reset navigation stack to MainLog
       props.navigation.dispatch(
         CommonActions.reset({
           index: 0,
@@ -182,7 +179,6 @@ function CustomDrawerContent(props) {
         <Image source={{ uri: 'https://via.placeholder.com/100' }} style={{ width: 100, height: 100, borderRadius: 50 }} />
         <Text style={styles.drawerHeaderText}>{userName}</Text>
         <Text style={styles.drawerEmailText}>{userEmail}</Text>
-        
       </View>
       <DrawerItemList {...props} />
       <DrawerItem
@@ -324,6 +320,16 @@ function App() {
         <Stack.Screen
           name="UnlockScreen"
           component={UnlockScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="GeneralConductScreen"
+          component={GeneralConductScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="EquipmentUsageScreen"
+          component={EquipmentUsageScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
