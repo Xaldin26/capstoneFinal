@@ -202,35 +202,49 @@ const HomeScreenStudent = ({ navigation }) => {
 
             {/* Horizontally scrollable boxes */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScrollView}>
-              {/* Image inside the first scrollable box */}
+              {/* Box 1 */}
               <TouchableOpacity onPress={() => navigation.navigate('GeneralConductScreen')}>
                 <View style={styles.scrollBox}>
                   <Image 
                     source={require('../imglogo/lab.png')} // Replace with your image path
                     style={styles.scrollBoxImage}
                   />
-                  {/* General Conduct text */}
                   <Text style={styles.scrollBoxText}>General Conduct</Text>
                 </View>
               </TouchableOpacity>
 
-              {/* Image inside the second scrollable box */}
+              {/* Box 2 */}
               <TouchableOpacity onPress={() => navigation.navigate('EquipmentUsageScreen')}>
                 <View style={styles.scrollBox}>
                   <Image 
                     source={require('../imglogo/equipment_usage.png')} // Replace with your image path
                     style={styles.scrollBoxImage}
                   />
-                  {/* Equipment Usage text */}
                   <Text style={styles.scrollBoxText}>Equipment Usage</Text>
                 </View>
               </TouchableOpacity>
 
-              {[...Array(2)].map((_, index) => (
-                <View key={index} style={styles.scrollBox}>
-                  <Text style={styles.scrollBoxText}>Box {index + 3}</Text>
+              {/* Box 3 with image */}
+              <TouchableOpacity onPress={() => navigation.navigate('SoftwareUsageScreen')}>
+                <View style={styles.scrollBox}>
+                  <Image 
+                    source={require('../imglogo/access.png')} // Replace 'your_image.png' with the path to your desired image
+                    style={styles.scrollBoxImage}
+                  />
+                  <Text style={styles.scrollBoxText}>Usage & Licensing</Text>
                 </View>
-              ))}
+              </TouchableOpacity>
+
+              {/* Box 4 with image */}
+              <TouchableOpacity onPress={() => navigation.navigate('SafetyProtocolsScreen')}>
+                <View style={styles.scrollBox}>
+                  <Image 
+                    source={require('../imglogo/safety.png')} // Replace 'your_image.png' with the path to your desired image
+                    style={styles.scrollBoxImage}
+                  />
+                  <Text style={styles.scrollBoxText}>Safety Protocols</Text>
+                </View>
+              </TouchableOpacity>
             </ScrollView>
 
             <Text style={styles.scheduleText}>MACLAB SCHEDULE</Text>
@@ -359,7 +373,7 @@ const styles = StyleSheet.create({
   },
   scrollBox: {
     width: 160,
-    height: 130,
+    height: 140,
     backgroundColor: '#f9f9f9',
     borderRadius: 10,
     marginRight: 10,
@@ -368,7 +382,7 @@ const styles = StyleSheet.create({
   },
   scrollBoxImage: {
     width: '100%',
-    height: '80%',  // Adjusting height to make space for the text
+    height: '70%',  // Adjusting height to make space for the text
     borderRadius: 10,
   },
   scrollBoxText: {

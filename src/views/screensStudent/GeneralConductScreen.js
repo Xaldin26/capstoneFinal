@@ -5,7 +5,8 @@ import {
   StyleSheet, 
   ScrollView, 
   Image, 
-  SafeAreaView 
+  SafeAreaView, 
+  TouchableOpacity 
 } from 'react-native';
 
 const GeneralConductScreen = ({ navigation }) => {
@@ -48,6 +49,14 @@ const GeneralConductScreen = ({ navigation }) => {
             If you encounter any issues with the equipment or facilities, please report them to the lab staff immediately.
           </Text>
         </View>
+
+        {/* Next Button */}
+        <TouchableOpacity 
+          style={styles.nextButton} 
+          onPress={() => navigation.navigate('EquipmentUsageScreen')} // Ensure this screen exists in your navigator
+        >
+          <Text style={styles.nextButtonText}>Next</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -103,6 +112,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     lineHeight: 22,
+  },
+  nextButton: {
+    marginTop: 20,
+    backgroundColor: '#1E293B',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nextButtonText: {
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: '600',
   },
 });
 

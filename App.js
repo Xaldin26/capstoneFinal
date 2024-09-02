@@ -25,6 +25,8 @@ import ScanningChoice from "./src/views/screensStudent/ScanningChoice";
 import VerifyPin from "./src/views/screens/VerifyPin";
 import GeneralConductScreen from "./src/views/screensStudent/GeneralConductScreen";
 import EquipmentUsageScreen from "./src/views/screensStudent/EquipmentUsageScreen";
+import SoftwareUsageScreen from "./src/views/screensStudent/SoftwareUsageScreen ";
+import SafetyProtocolsScreen from "./src/views/screensStudent/SafetyProtocolsScreen";
 
 // Define Navigators
 const Stack = createNativeStackNavigator();
@@ -330,6 +332,16 @@ function App() {
         <Stack.Screen
           name="EquipmentUsageScreen"
           component={EquipmentUsageScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="SoftwareUsageScreen"
+          component={SoftwareUsageScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="SafetyProtocolsScreen"
+          component={SafetyProtocolsScreen}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>
