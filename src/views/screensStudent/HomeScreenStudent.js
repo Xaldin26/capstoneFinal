@@ -8,7 +8,8 @@ import {
   ScrollView, 
   Animated, 
   SafeAreaView,
-  Image 
+  Image,
+  TextInput
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,6 +25,7 @@ const HomeScreenStudent = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [searchQuery, setSearchQuery] = useState('');
 
   const opacity = useRef(new Animated.Value(1)).current;
 
@@ -79,7 +81,6 @@ const HomeScreenStudent = ({ navigation }) => {
   const saveCurrentSchedule = async (subject) => {
     try {
       if (subject) {
-        // Ensure the instructor name is included in the subject data
         const subjectWithInstructor = {
           ...subject,
           instructorName: subjectInstructorMap[subject.id]?.instructorName || 'Unknown Instructor',
@@ -173,11 +174,14 @@ const HomeScreenStudent = ({ navigation }) => {
     start.setHours(parseInt(startHours), parseInt(startMinutes), 0);
     end.setHours(parseInt(endHours), parseInt(endMinutes), 0);
 
-    // Check if the current time falls within the start and end time and if the day matches
     return now >= start && now <= end && day === getCurrentDay();
   };
 
-  const matchingSubjects = subjects.filter(subject => isTimeWithinRange(subject.start_time, subject.end_time, subject.day));
+  const matchingSubjects = subjects.filter(subject => 
+    isTimeWithinRange(subject.start_time, subject.end_time, subject.day) &&
+    (subject.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    subjectInstructorMap[subject.id]?.instructorName.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   if (loading) {
     return <ActivityIndicator size="large" color="#6200ea" style={styles.loader} />;
@@ -197,49 +201,43 @@ const HomeScreenStudent = ({ navigation }) => {
       case 'Overview':
         return (
           <ScrollView style={styles.scrollableContainer}>
-            {/* Laboratory Guidelines Text */}
             <Text style={styles.guidelinesText}>Laboratory Guidelines</Text>
 
-            {/* Horizontally scrollable boxes */}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScrollView}>
-              {/* Box 1 */}
               <TouchableOpacity onPress={() => navigation.navigate('GeneralConductScreen')}>
                 <View style={styles.scrollBox}>
                   <Image 
-                    source={require('../imglogo/lab.png')} // Replace with your image path
+                    source={require('../imglogo/lab.png')}
                     style={styles.scrollBoxImage}
                   />
                   <Text style={styles.scrollBoxText}>General Conduct</Text>
                 </View>
               </TouchableOpacity>
 
-              {/* Box 2 */}
               <TouchableOpacity onPress={() => navigation.navigate('EquipmentUsageScreen')}>
                 <View style={styles.scrollBox}>
                   <Image 
-                    source={require('../imglogo/equipment_usage.png')} // Replace with your image path
+                    source={require('../imglogo/equipment_usage.png')}
                     style={styles.scrollBoxImage}
                   />
                   <Text style={styles.scrollBoxText}>Equipment Usage</Text>
                 </View>
               </TouchableOpacity>
 
-              {/* Box 3 with image */}
               <TouchableOpacity onPress={() => navigation.navigate('SoftwareUsageScreen')}>
                 <View style={styles.scrollBox}>
                   <Image 
-                    source={require('../imglogo/access.png')} // Replace 'your_image.png' with the path to your desired image
+                    source={require('../imglogo/access.png')}
                     style={styles.scrollBoxImage}
                   />
                   <Text style={styles.scrollBoxText}>Usage & Licensing</Text>
                 </View>
               </TouchableOpacity>
 
-              {/* Box 4 with image */}
               <TouchableOpacity onPress={() => navigation.navigate('SafetyProtocolsScreen')}>
                 <View style={styles.scrollBox}>
                   <Image 
-                    source={require('../imglogo/safety.png')} // Replace 'your_image.png' with the path to your desired image
+                    source={require('../imglogo/safety.png')}
                     style={styles.scrollBoxImage}
                   />
                   <Text style={styles.scrollBoxText}>Safety Protocols</Text>
@@ -247,26 +245,37 @@ const HomeScreenStudent = ({ navigation }) => {
               </TouchableOpacity>
             </ScrollView>
 
-            <Text style={styles.scheduleText}>MACLAB SCHEDULE</Text>
+            <Text style={styles.scheduleText}>ENROLL A COURSE</Text>
+            
+            {/* Search Bar */}
+            <TextInput
+              style={styles.searchBar}
+              placeholder="Search by Instructor or Subject Name"
+              value={searchQuery}
+              onChangeText={(text) => setSearchQuery(text)}
+            />
+
             {groupedSubjects.map(group => (
               <View key={group.instructorName} style={styles.group}>
                 <Text style={styles.instructorHeader}>{group.instructorName}</Text>
                 {group.subjects.length > 0 ? (
-                  group.subjects.map(subject => (
-                    <View key={subject.id} style={styles.subjectContainer}>
-                      <Text style={styles.subjectTitle}>{subject.name}</Text>
-                      <Text style={styles.subjectCode}>Code: {subject.code}</Text>
-                      <Text style={styles.subjectDay}>Every: {subject.day}</Text>
-                      <Text style={styles.subjectTime}>Time: {formatTime(subject.start_time)} - {formatTime(subject.end_time)}</Text>
-                      <Text style={styles.subjectSection}>Section: {subject.section}</Text>
-                      <Text style={styles.subjectDescription}>
-                        {subject.description}
-                        <TouchableOpacity>
-                          <Text style={styles.readMore}> Read more →</Text>
-                        </TouchableOpacity>
-                      </Text>
-                    </View>
-                  ))
+                  group.subjects
+                    .filter(subject => subject.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map(subject => (
+                      <View key={subject.id} style={styles.subjectContainer}>
+                        <Text style={styles.subjectTitle}>{subject.name}</Text>
+                        <Text style={styles.subjectCode}>Code: {subject.code}</Text>
+                        <Text style={styles.subjectDay}>Every: {subject.day}</Text>
+                        <Text style={styles.subjectTime}>Time: {formatTime(subject.start_time)} - {formatTime(subject.end_time)}</Text>
+                        <Text style={styles.subjectSection}>Section: {subject.section}</Text>
+                        <Text style={styles.subjectDescription}>
+                          {subject.description}
+                          <TouchableOpacity>
+                            <Text style={styles.readMore}> Read more →</Text>
+                          </TouchableOpacity>
+                        </Text>
+                      </View>
+                    ))
                 ) : (
                   <Text style={styles.noDataText}>No subjects available</Text>
                 )}
@@ -399,6 +408,14 @@ const styles = StyleSheet.create({
     color: '#333',
     textAlign: 'center',
     marginBottom: 10,
+  },
+  searchBar: {
+    height: 40,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingLeft: 15,
+    marginBottom: 20,
   },
   group: {
     marginBottom: 20,

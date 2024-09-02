@@ -4,10 +4,11 @@ import {
   Text, 
   StyleSheet, 
   Image, 
-  ScrollView 
+  ScrollView, 
+  TouchableOpacity 
 } from 'react-native';
 
-const EquipmentUsageScreen = () => {
+const EquipmentUsageScreen = ({ navigation }) => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.headerContainer}>
@@ -39,6 +40,24 @@ const EquipmentUsageScreen = () => {
         <Text style={styles.contentText}>
           6. If you are unsure about how to use any equipment, please ask for assistance from the lab supervisor or a designated staff member.
         </Text>
+      </View>
+
+      <View style={styles.buttonContainer}>
+        {/* Previous Button */}
+        <TouchableOpacity 
+          style={styles.previousButton} 
+          onPress={() => navigation.goBack()} // Navigate to the previous screen
+        >
+          <Text style={styles.buttonText}>Previous</Text>
+        </TouchableOpacity>
+
+        {/* Next Button */}
+        <TouchableOpacity 
+          style={styles.nextButton} 
+          onPress={() => navigation.navigate('SoftwareUsageScreen')} // Replace 'NextScreen' with your target screen
+        >
+          <Text style={styles.buttonText}>Next</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
@@ -84,6 +103,36 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 15,
     lineHeight: 24,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: '#f9f9f9',
+  },
+  previousButton: {
+    marginTop: 5,
+    backgroundColor: '#1E293B',
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nextButton: {
+    marginTop: 5,
+    backgroundColor: '#1E293B',
+    paddingVertical: 10,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'flex-end', // Aligns the button to the right
+  },
+  buttonText: {
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: '600',
   },
 });
 

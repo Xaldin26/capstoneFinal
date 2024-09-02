@@ -114,13 +114,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   nextButton: {
-    marginTop: 20,
+    marginTop: 5,
     backgroundColor: '#1E293B',
-    paddingVertical: 15,
+    paddingVertical: 10,
     paddingHorizontal: 30,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'flex-end', // Aligns the button to the right
   },
   nextButtonText: {
     fontSize: 18,
