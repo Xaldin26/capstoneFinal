@@ -2,14 +2,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
-  ActivityIndicator, 
+  Alert,
   StyleSheet, 
   TouchableOpacity, 
   ScrollView, 
   Animated, 
   SafeAreaView,
   Image,
-  TextInput
+  TextInput,
+  Modal,
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -26,6 +27,10 @@ const HomeScreenStudent = ({ navigation }) => {
   const [error, setError] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState('');
+  const [groupedSubjects, setGroupedSubjects] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [enrolmentKey, setEnrolmentKey] = useState('');
 
   const opacity = useRef(new Animated.Value(1)).current;
 
@@ -131,6 +136,14 @@ const HomeScreenStudent = ({ navigation }) => {
       const filteredSubjects = fetchedSubjects.filter(subject => subjectIds.includes(subject.id));
       setMatchedSubjects(filteredSubjects);
       setInstructorSubjectMap(instructorSubjectMap);
+
+      // Set grouped subjects for rendering
+      const grouped = Object.keys(instructorSubjectMap).map(instructorId => ({
+        instructorName: fetchedInstructors.find(inst => inst.id === parseInt(instructorId))?.username || 'Unknown Instructor',
+        subjects: instructorSubjectMap[instructorId] || [],
+      }));
+      setGroupedSubjects(grouped);
+
       setLoading(false);
     } catch (error) {
       setError(error);
@@ -139,6 +152,7 @@ const HomeScreenStudent = ({ navigation }) => {
   };
 
   const formatTime = (time) => {
+    if (!time) return 'Invalid Time';
     const [hours, minutes] = time.split(':');
     const ampm = hours >= 12 ? 'PM' : 'AM';
     const formattedHours = hours % 12 || 12;
@@ -164,6 +178,8 @@ const HomeScreenStudent = ({ navigation }) => {
   };
 
   const isTimeWithinRange = (startTime, endTime, day) => {
+    if (!startTime || !endTime || !day) return false;
+
     const [startHours, startMinutes] = startTime.split(':');
     const [endHours, endMinutes] = endTime.split(':');
 
@@ -176,25 +192,6 @@ const HomeScreenStudent = ({ navigation }) => {
 
     return now >= start && now <= end && day === getCurrentDay();
   };
-
-  const matchingSubjects = subjects.filter(subject => 
-    isTimeWithinRange(subject.start_time, subject.end_time, subject.day) &&
-    (subject.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    subjectInstructorMap[subject.id]?.instructorName.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
-  if (loading) {
-    return <ActivityIndicator size="large" color="#6200ea" style={styles.loader} />;
-  }
-
-  if (error) {
-    return <Text style={styles.error}>Error: {error.message}</Text>;
-  }
-
-  const groupedSubjects = Object.keys(instructorSubjectMap).map(instructorId => ({
-    instructorName: instructors.find(inst => inst.id === parseInt(instructorId))?.username || 'Unknown Instructor',
-    subjects: instructorSubjectMap[instructorId] || [],
-  }));
 
   const renderContent = () => {
     switch (selectedButton) {
@@ -244,9 +241,30 @@ const HomeScreenStudent = ({ navigation }) => {
                 </View>
               </TouchableOpacity>
             </ScrollView>
+          </ScrollView>
+        );
+      case 'People':
+        const filteredGroupedSubjects = groupedSubjects
+          .map(group => {
+            const filteredSubjects = group.subjects.filter(subject =>
+              subject.name?.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            if (group.instructorName?.toLowerCase().includes(searchQuery.toLowerCase())) {
+              return {
+                ...group,
+                subjects: group.subjects,
+              };
+            }
+            return filteredSubjects.length > 0
+              ? { ...group, subjects: filteredSubjects }
+              : null;
+          })
+          .filter(group => group !== null);
 
+        return (
+          <ScrollView style={styles.scrollableContainer}>
             <Text style={styles.scheduleText}>ENROLL A COURSE</Text>
-            
+
             {/* Search Bar */}
             <TextInput
               style={styles.searchBar}
@@ -255,27 +273,32 @@ const HomeScreenStudent = ({ navigation }) => {
               onChangeText={(text) => setSearchQuery(text)}
             />
 
-            {groupedSubjects.map(group => (
+            {/* Display filtered subjects */}
+            {filteredGroupedSubjects.map(group => (
               <View key={group.instructorName} style={styles.group}>
                 <Text style={styles.instructorHeader}>{group.instructorName}</Text>
                 {group.subjects.length > 0 ? (
-                  group.subjects
-                    .filter(subject => subject.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                    .map(subject => (
-                      <View key={subject.id} style={styles.subjectContainer}>
-                        <Text style={styles.subjectTitle}>{subject.name}</Text>
-                        <Text style={styles.subjectCode}>Code: {subject.code}</Text>
-                        <Text style={styles.subjectDay}>Every: {subject.day}</Text>
-                        <Text style={styles.subjectTime}>Time: {formatTime(subject.start_time)} - {formatTime(subject.end_time)}</Text>
-                        <Text style={styles.subjectSection}>Section: {subject.section}</Text>
-                        <Text style={styles.subjectDescription}>
-                          {subject.description}
-                          <TouchableOpacity>
-                            <Text style={styles.readMore}> Read more →</Text>
-                          </TouchableOpacity>
-                        </Text>
-                      </View>
-                    ))
+                  group.subjects.map(subject => (
+                    <View key={subject.id} style={styles.subjectContainer}>
+                      <Text style={styles.subjectTitle}>{subject.name || 'Unknown Subject'}</Text>
+                      <Text style={styles.subjectCode}>Code: {subject.code || 'N/A'}</Text>
+                      <Text style={styles.subjectDay}>Every: {subject.day || 'Unknown Day'}</Text>
+                      <Text style={styles.subjectTime}>Time: {formatTime(subject.start_time)} - {formatTime(subject.end_time)}</Text>
+                      <Text style={styles.subjectSection}>Section: {subject.section || 'N/A'}</Text>
+                      <Text style={styles.subjectDescription}>
+                        {subject.description || 'No description available'}
+                        <TouchableOpacity>
+                          <Text style={styles.readMore}> Read more →</Text>
+                        </TouchableOpacity>
+                      </Text>
+                      <TouchableOpacity 
+                        style={styles.enrollButton}
+                        onPress={() => handleEnroll(subject)}
+                      >
+                        <Text style={styles.enrollButtonText}>Get Access</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))
                 ) : (
                   <Text style={styles.noDataText}>No subjects available</Text>
                 )}
@@ -283,10 +306,75 @@ const HomeScreenStudent = ({ navigation }) => {
             ))}
           </ScrollView>
         );
-      case 'People':
-        return <Text style={styles.contentText}>People Screen Content</Text>;
       default:
         return <Text style={styles.contentText}>Welcome to Home Screen</Text>;
+    }
+  };
+
+  const handleEnroll = (subject) => {
+    const subjectWithInstructor = {
+      ...subject,
+      instructorName: subjectInstructorMap[subject.id]?.instructorName || 'Unknown Instructor',
+    };
+    setSelectedSubject(subjectWithInstructor);
+    setModalVisible(true);
+  };
+
+  const handleEnrollSubmit = async () => {
+    if (!enrolmentKey) {
+      Alert.alert('Error', 'Please enter an enrollment key.');
+      return;
+    }
+
+    try {
+      // Fetch all subjects data
+      const response = await axios.get('https://lockup.pro/api/subs');
+      const allSubjects = response.data.data;
+
+      // Find the subject in the fetched data
+      const matchedSubject = allSubjects.find(subject => subject.code === selectedSubject.code);
+
+      if (!matchedSubject) {
+        Alert.alert('Error', 'Subject not found.');
+        return;
+      }
+
+      // Check if the enrolment key matches the QR code
+      if (enrolmentKey !== matchedSubject.qr) {
+        Alert.alert('Error', 'Invalid enrolment key.');
+        return;
+      }
+
+      // Get logged-in user data from AsyncStorage
+      const userData = await AsyncStorage.getItem('userData');
+      const user = userData ? JSON.parse(userData) : null;
+
+      if (!user) {
+        Alert.alert('Error', 'User not found.');
+        return;
+      }
+
+      // Prepare the data to be posted
+      const postData = {
+        student_id: user.id,
+        subject_id: matchedSubject.id,
+      };
+
+      // Post the data to the server
+      const postResponse = await axios.post('https://lockup.pro/api/student-subject', postData);
+
+      if (postResponse.data.status === 'success') {
+        Alert.alert('Success', 'Student successfully associated with the subject.');
+      } else {
+        Alert.alert('Error', 'Failed to enroll in the subject.');
+      }
+
+    } catch (error) {
+      console.error('Enrollment error:', error);
+      Alert.alert('Error', 'An error occurred while processing your request.');
+    } finally {
+      setModalVisible(false);
+      setEnrolmentKey('');
     }
   };
 
@@ -307,7 +395,7 @@ const HomeScreenStudent = ({ navigation }) => {
           style={[styles.navButton, selectedButton === 'People' && styles.selectedButton]}
           onPress={() => setSelectedButton('People')}
         >
-          <Text style={[styles.navButtonText, selectedButton === 'People' && styles.selectedButtonText]}>People</Text>
+          <Text style={[styles.navButtonText, selectedButton === 'People' && styles.selectedButtonText]}>Add Course</Text>
         </TouchableOpacity>
       </View>
       {renderContent()}
@@ -315,6 +403,46 @@ const HomeScreenStudent = ({ navigation }) => {
         <Text style={styles.dateText}>{getFormattedDate()}</Text>
         <Text style={styles.timeText}>{getCurrentTimeFormatted()}</Text>
       </Animated.View>
+
+      {/* Enrolment Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Enroll in {selectedSubject?.name}</Text>
+            <Text style={styles.modalText}>Instructor: {selectedSubject?.instructorName}</Text>
+            <Text style={styles.modalText}>Subject Code: {selectedSubject?.code}</Text>
+            <Text style={styles.modalText}>Day: {selectedSubject?.day}</Text>
+            <Text style={styles.modalText}>Time: {formatTime(selectedSubject?.start_time)} - {formatTime(selectedSubject?.end_time)}</Text>
+            <Text style={styles.modalText}>Section: {selectedSubject?.section}</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Enrolment Key"
+              value={enrolmentKey}
+              onChangeText={setEnrolmentKey}
+            />
+
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={handleEnrollSubmit}
+            >
+              <Text style={styles.modalButtonText}>Enroll me</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: '#888' }]}
+              onPress={() => setModalVisible(false)}
+            >
+              <Text style={styles.modalButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -492,6 +620,62 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 18,
     color: '#333',
+  },
+  enrollButton: {
+    backgroundColor: '#1E88E5',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  enrollButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    width: '80%',
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 10,
+    color: '#333',
+  },
+  input: {
+    height: 40,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    marginBottom: 20,
+  },
+  modalButton: {
+    backgroundColor: '#1E88E5',
+    paddingVertical: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

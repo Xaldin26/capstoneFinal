@@ -52,18 +52,18 @@ const LoginScreen = ({ navigation }) => {
 
       if (response.status === 200) {
         const userData = response.data;
-        const userId = userData.id; // Extract the user's ID
-        console.log("Login successful. User ID:", userId);
+        const { id, name, section } = userData; // Extract id, name, and section from response
+        console.log("Login successful. User ID:", id);
 
-        // Store user data in AsyncStorage, including the ID
-        await AsyncStorage.setItem("userData", JSON.stringify(userData));
-        console.log("User data saved to AsyncStorage.");
+        // Store the id, name, and section in AsyncStorage
+        await AsyncStorage.setItem("userData", JSON.stringify({ id, name, section }));
+        console.log("User data (id, name, section) saved to AsyncStorage.");
 
         // Reset navigation stack and navigate to DrawerNavigatorStudent
         navigation.dispatch(
           CommonActions.reset({
             index: 0,
-            routes: [{ name: "DrawerNavigatorStudent", params: { userId } }],
+            routes: [{ name: "DrawerNavigatorStudent", params: { userId: id } }],
           })
         );
       }
